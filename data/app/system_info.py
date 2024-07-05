@@ -27,5 +27,11 @@ def raspberry_pi_info():
     }
     
 def save():
-    with open(path, "w") as info:
-        json.dump(raspberry_pi_info(), info)
+    RPi = raspberry_pi_info()
+    data = {
+        "RPi": RPi,
+        "Router": "test",
+        "Camera": "test"
+    }
+    with open(path, 'w') as json_file:
+        json.dump(data, json_file, indent=4)
