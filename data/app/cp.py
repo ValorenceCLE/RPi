@@ -13,10 +13,18 @@ class INA260Camera:
         i2c = board.I2C()  # Setup I2C connection
         self.ina260 = adafruit_ina260.INA260(i2c, address=0x41)  # Initialize INA260 sensor
         # Load environment variables
-        self.token = os.getenv('INFLUXDB_TOKEN')
-        self.org = os.getenv('INFLUXDB_ORG')
-        self.bucket = os.getenv('INFLUXDB_BUCKET')
-        self.client = InfluxDBClient(url="http://influxdb:8086", token=self.token, org=self.org)
+        self.token = os.getenv('DOCKER_INFLUXDB_INIT_ADMIN_TOKEN')
+        self.org = os.getenv('DOCKER_INFLUXDB_INIT_ORG')
+        self.bucket = os.getenv('DOCKER_INFLUXDB_INIT_BUCKET')
+        self.url = os.getenv('INFLUXDB_URL')
+
+        # Debug prints to verify environment variables
+        print(f"Token: {self.token}")
+        print(f"Org: {self.org}")
+        print(f"Bucket: {self.bucket}")
+        print(f"URL: {self.url}")
+
+        self.client = InfluxDBClient(url=self.url, token=self.token, org=self.org)
         self.write_api = self.client.write_api(write_options=SYNCHRONOUS)
 
     def get_current_amps(self):
@@ -34,15 +42,13 @@ class INA260Camera:
         power_W = self.get_power_watts()
         print(f"Camera Power- Current: {current_A} A, Voltage: {voltage_V} V, Power: {power_W} W")
 
-        # Create data point
         point = Point("sensor_data")\
             .tag("device", "camera")\
-            .field("current_amps", current_A)\
-            .field("voltage_volts", voltage_V)\
-            .field("power_watts", power_W)\
+            .field("amps", current_A)\
+            .field("volts", voltage_V)\
+            .field("watts", power_W)\
             .time(time.time_ns(), WritePrecision.NS)
-        
-        # Write data
+
         self.write_api.write(self.bucket, self.org, point)
 
     def cp_test(self):
@@ -53,9 +59,9 @@ class INA260Camera:
     def __del__(self):
         self.client.close()
 
-# Initialize sensor
 sensor = INA260Camera()
 sensor.cp_test()
+
 
             
 #Poll sensor every 30 seconds
