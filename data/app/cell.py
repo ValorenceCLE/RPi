@@ -36,7 +36,7 @@ def fetch_snmp_data(host, community, oid_dict):
             print(f"SNMP error at {errorIndex}: {errorStatus.prettyPrint()}")
             continue
         else:
-            results[oid_name] = float(varBinds[0][1].prettyPrint())
+            results[oid_name] = varBinds[0][1].prettyPrint()
 
     return results
 
