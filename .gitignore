@@ -1,2 +1,3 @@
 config/
 device_info/
+__pycache__/
