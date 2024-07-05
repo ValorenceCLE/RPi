@@ -69,7 +69,10 @@ def get_device_info(device_name):
             serial = get_snmp_data(device['ip'], serial_oid)
     elif device_name == 'Camera':
         serial = get_snmp_data(device['ip'], device['serial_oid'])
-        serial = serial.split('0x')[1].strip().upper() if serial else None
+        if serial:
+            serial = serial.split('0x')[1].strip().upper()
+        if model:
+            model = model.split(';')[1].strip()
     
     if model and serial:
         return {
