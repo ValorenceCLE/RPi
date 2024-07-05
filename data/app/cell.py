@@ -1,68 +1,58 @@
-#Camera Power
-#Naming Convention: Camera Number - Sensor Name
-#i.e: B8A44F7FF4C2-INA260
-import os
-import time
-import board
-import adafruit_ina260
-from influxdb_client import InfluxDBClient, Point, WritePrecision
-from influxdb_client.client.write_api import SYNCHRONOUS
+import logging
+from pysnmp.hlapi import SnmpEngine, CommunityData, UdpTransportTarget, ContextData, ObjectType, ObjectIdentity, getCmd
 
-class INA260Camera:
-    def __init__(self):
-        i2c = board.I2C()  # Setup I2C connection
-        self.ina260 = adafruit_ina260.INA260(i2c, address=0x41)  # Initialize INA260 sensor
-        # Load environment variables
-        self.token = os.getenv('DOCKER_INFLUXDB_INIT_ADMIN_TOKEN')
-        self.org = os.getenv('DOCKER_INFLUXDB_INIT_ORG')
-        self.bucket = os.getenv('DOCKER_INFLUXDB_INIT_BUCKET')
-        self.url = os.getenv('INFLUXDB_URL')
+# Router model and OID mappings
+ROUTER_MODEL = "Pepwave MAX BR1 Pro 5G"
+OID_MAPPINGS = {
+    "Pepwave MAX BR1 Pro 5G": {
+        'rsrp_oid': '.1.3.6.1.2.1.1.1.0',
+        'rsrq_oid': '.1.3.6.1.2.1.1.5.0',
+        'sinr_oid': '.1.3.6.1.2.1.1.3.0'
+    }
+}
 
-        # Debug prints to verify environment variables
-        print(f"Token: {self.token}")
-        print(f"Org: {self.org}")
-        print(f"Bucket: {self.bucket}")
-        print(f"URL: {self.url}")
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-        self.client = InfluxDBClient(url=self.url, token=self.token, org=self.org)
-        self.write_api = self.client.write_api(write_options=SYNCHRONOUS)
+def fetch_snmp_data(host, community, oid_dict):
+    """Fetch SNMP data synchronously."""
+    engine = SnmpEngine()
+    results = {}
+    for oid_name, oid in oid_dict.items():
+        errorIndication, errorStatus, errorIndex, varBinds = next(
+            getCmd(
+                engine,
+                CommunityData(community, mpModel=1),
+                UdpTransportTarget((host, 161)),
+                ContextData(),
+                ObjectType(ObjectIdentity(oid))
+            )
+        )
 
-    def get_current_amps(self):
-        return round(self.ina260.current / 1000, 2)
+        if errorIndication:
+            print(f"SNMP error: {errorIndication}")
+            continue
+        elif errorStatus:
+            print(f"SNMP error at {errorIndex}: {errorStatus.prettyPrint()}")
+            continue
+        else:
+            results[oid_name] = float(varBinds[0][1].prettyPrint())
 
-    def get_voltage_volts(self):
-        return round(self.ina260.voltage, 1)
+    return results
 
-    def get_power_watts(self):
-        return round(self.ina260.power / 1000, 1)
+def cell():
+    host = '192.168.1.1'  # SNMP server address
+    community = 'public'  # SNMP community
+    oid_dict = OID_MAPPINGS.get(ROUTER_MODEL)
 
-    def record_measurement(self):
-        current_A = self.get_current_amps()
-        voltage_V = self.get_voltage_volts()
-        power_W = self.get_power_watts()
-        print(f"Camera Power- Current: {current_A} A, Voltage: {voltage_V} V, Power: {power_W} W")
+    if not oid_dict:
+        print(f"No OID mapping found for {ROUTER_MODEL}")
+        return
 
-        point = Point("sensor_data")\
-            .tag("device", "camera")\
-            .field("amps", current_A)\
-            .field("volts", voltage_V)\
-            .field("watts", power_W)\
-            .time(time.time_ns(), WritePrecision.NS)
+    # Fetch and print SNMP data
+    data = fetch_snmp_data(host, community, oid_dict)
+    for key, value in data.items():
+        print(f"{key}: {value}")
 
-        self.write_api.write(self.bucket, self.org, point)
-
-    def cp_test(self):
-        for i in range(5):
-            self.record_measurement()
-            time.sleep(5)
-
-    def __del__(self):
-        self.client.close()
-
-sensor = INA260Camera()
-sensor.cp_test()
-
-            
-#Poll sensor every 30 seconds
-#Only save changes in the data
-#What should I do to handle extreme values such as power loss?
+if __name__ == "__main__":
+    cell()
