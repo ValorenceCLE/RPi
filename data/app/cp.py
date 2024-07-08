@@ -4,6 +4,7 @@
 import os
 import time
 import board
+import json
 import adafruit_ina260
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions
@@ -19,10 +20,14 @@ class INA260Camera:
         self.url = os.getenv('INFLUXDB_URL')
         self.client = InfluxDBClient(url=self.url, token=self.token, org=self.org)
         self.write_api = self.client.write_api(write_options=WriteOptions(write_type=SYNCHRONOUS))
+        self.save_interval = 5
+        self.counter = 0
+        self.SYSTEM_INFO_PATH = '/app/device_info/system_info.json'
         
-        self.prev_volt = None
-        self.prev_watt = None
-        self.prev_amp = None
+        with open(self.SYSTEM_INFO_PATH, 'r') as file:
+            data = json.load(file)
+        self.serial = data["Camera"]["Serial_Number"]
+        self.sensor_id = self.serial + "-INA260"
 
     def get_current_amps(self):
         return round(self.ina260.current / 1000, 2)
@@ -32,34 +37,62 @@ class INA260Camera:
 
     def get_power_watts(self):
         return round(self.ina260.power / 1000, 1)
-
-    def record_measurement(self):
+    
+    def validation_check(self, volts):
+        if volts < 8 or volts > 16:
+             return "ERROR"
+        elif volts < 10 or volts > 14:
+            return "WARNING"
+        elif volts < 11 or volts > 13:
+            return "INFO"
+        else:
+            return "NORMAL"
+        
+    def process_data(self):
         try:
             current_V = self.get_voltage_volts()
             current_W = self.get_power_watts()
             current_A = self.get_current_amps()
+            validation_level = self.validation_check(current_V)
             
-            if self.prev_volt != current_V:
-                point = Point("sensor_data")\
-                    .tag("device", "camera")\
-                    .field("volts", current_V)\
-                    .field("watts", current_W)\
-                    .field("amps", current_A)\
-                    .time(int(time.time()), WritePrecision.S)
-                self.write_api.write(self.bucket, self.org, point)
-                print(f"Camera Volts: {current_V}.")
-                print(f"Camera Watts: {current_W}.")
-                print(f"Camera Amps: {current_A}.")
-                self.prev_volt = current_V
-                self.prev_watt = current_W
-                self.prev_amp = current_A
-            time.sleep(3)
+            if validation_level == "NORMAL":
+                self.counter += 1
+                if self.counter >= self.save_interval:
+                    self.save_normal(current_V, current_W, current_A)
+                    self.counter = 0
+            if validation_level == "INFO":
+                self.save_critical(current_V, current_W, current_A, "INFO")
+            if validation_level == "WARNING":
+                self.save_critical(current_V, current_W, current_A, "WARNING")
+                #Further Processing
+            if validation_level == "ERROR":
+                self.save_critical(current_V, current_W, current_A, "ERROR")
+                #Further actions and processing
+        
         except OSError:
-            print("Failed to read sensor data. Check the sensor connection.")
+            print("Failed to read sensor data. Check connection")
+    
+    def save_normal(self, volts, watts, amps):
+        point = Point("sensor_data")\
+            .tag("device", "camera")\
+            .field("volts", volts)\
+            .field("watts", watts)\
+            .field("amps", amps)\
+            .time(int(time.time()), WritePrecision.S)
+        self.write_api.write(self.bucket, self.org, point)
+    
+    def save_critical(self, volts, watts, amps, level):
+        point = Point("critical_data")\
+            .tag("device", "camera")\
+            .tag("level", level)\
+            .field("volts", volts)\
+            .field("watts", watts)\
+            .field("amps", amps)\
+            .time(int(time.time()), WritePrecision.S)
     
     def cp_run(self):
         for i in range(10):
-            self.record_measurement()
+            self.process_data()
             time.sleep(5)
 
     def __del__(self):
