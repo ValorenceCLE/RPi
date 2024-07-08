@@ -10,7 +10,7 @@ rp = INA260Router()
 
 def main():
     save()
-    rp.rp_test()
+    rp.rp_run()
     cp.cp_run()
     env.env_run()
     cell()
