@@ -5,6 +5,7 @@ import time
 import smbus2
 import os
 from influxdb_client import InfluxDBClient, Point, WritePrecision
+from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions
 
 class AHT10:
     def __init__(self, i2c_bus=1, address=0x38):
@@ -15,7 +16,7 @@ class AHT10:
         self.org = os.getenv('DOCKER_INFLUXDB_INIT_ORG')
         self.bucket = os.getenv('DOCKER_INFLUXDB_INIT_BUCKET')
         self.client = InfluxDBClient(url=os.getenv('INFLUXDB_URL'), token=self.token, org=self.org)
-        self.write_api = self.client.write_api(write_options=WritePrecision.S)
+        self.write_api = self.client.write_api(write_options=WriteOptions(write_type=SYNCHRONOUS))
         
         self.prev_temp = None
         self.prev_hum = None
@@ -43,7 +44,7 @@ class AHT10:
             current_T = self.read_temperature()
             current_H = self.read_humidity()
             
-            if self.prev_temp != current_T:
+            if self.prev_temp != current_T or self.prev_hum != current_H:
                 point = Point("sensor_data")\
                     .tag("device", 'environment')\
                     .field("temperature", current_T)\
@@ -53,8 +54,6 @@ class AHT10:
                 
                 self.prev_temp = current_T
                 self.prev_hum = current_H
-            else:
-                pass
             time.sleep(3)
         except OSError:
             print("Failed to read sensor data. Check the sensor connection.")
