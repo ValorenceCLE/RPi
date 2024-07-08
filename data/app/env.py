@@ -49,7 +49,7 @@ class AHT10:
                     .tag("device", 'environment')\
                     .field("temperature", current_T)\
                     .field("humidity", current_H)\
-                    .time(time.time(), WritePrecision.S)
+                    .time(int(time.time()), WritePrecision.S)
                 self.write_api.write(self.bucket, self.org, point)
                 
                 self.prev_temp = current_T
