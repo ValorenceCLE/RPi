@@ -7,7 +7,7 @@ from system_info import save
 env = AHT10()
 cp = INA260Camera()
 rp = INA260Router()
-net = NetworkPingTest
+net = NetworkPingTest()
 def main():
     save()
     rp.rp_run()
