@@ -59,9 +59,6 @@ class INA260Camera:
     def __del__(self):
         self.client.close()
 
-sensor = INA260Camera()
-sensor.cp_test()
-
 
             
 #Poll sensor every 30 seconds
