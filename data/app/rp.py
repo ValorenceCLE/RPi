@@ -46,7 +46,9 @@ class INA260Router:
                     .field("amps", current_A)\
                     .time(int(time.time()), WritePrecision.S)
                 self.write_api.write(self.bucket, self.org, point)
-                
+                print(current_V)
+                print(current_W)
+                print(current_A)
                 self.prev_volt = current_V
                 self.prev_watt = current_W
                 self.prev_amp = current_A

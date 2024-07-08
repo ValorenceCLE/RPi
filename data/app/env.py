@@ -51,7 +51,8 @@ class AHT10:
                     .field("humidity", current_H)\
                     .time(int(time.time()), WritePrecision.S)
                 self.write_api.write(self.bucket, self.org, point)
-                
+                print(current_T)
+                print(current_H)
                 self.prev_temp = current_T
                 self.prev_hum = current_H
             time.sleep(3)
