@@ -6,7 +6,7 @@ import time
 import board
 import adafruit_ina260
 from influxdb_client import InfluxDBClient, Point, WritePrecision
-from influxdb_client.client.write_api import SYNCHRONOUS
+from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions
 
 class INA260Camera:
     def __init__(self):
@@ -17,15 +17,12 @@ class INA260Camera:
         self.org = os.getenv('DOCKER_INFLUXDB_INIT_ORG')
         self.bucket = os.getenv('DOCKER_INFLUXDB_INIT_BUCKET')
         self.url = os.getenv('INFLUXDB_URL')
-
-        # Debug prints to verify environment variables
-        print(f"Token: {self.token}")
-        print(f"Org: {self.org}")
-        print(f"Bucket: {self.bucket}")
-        print(f"URL: {self.url}")
-
         self.client = InfluxDBClient(url=self.url, token=self.token, org=self.org)
-        self.write_api = self.client.write_api(write_options=SYNCHRONOUS)
+        self.write_api = self.client.write_api(write_options=WriteOptions(write_type=SYNCHRONOUS))
+        
+        self.prev_volt = None
+        self.prev_watt = None
+        self.prev_amp = None
 
     def get_current_amps(self):
         return round(self.ina260.current / 1000, 2)
@@ -37,20 +34,27 @@ class INA260Camera:
         return round(self.ina260.power / 1000, 1)
 
     def record_measurement(self):
-        current_A = self.get_current_amps()
-        voltage_V = self.get_voltage_volts()
-        power_W = self.get_power_watts()
-        print(f"Camera Power- Current: {current_A} A, Voltage: {voltage_V} V, Power: {power_W} W")
-
-        point = Point("sensor_data")\
-            .tag("device", "camera")\
-            .field("amps", current_A)\
-            .field("volts", voltage_V)\
-            .field("watts", power_W)\
-            .time(time.time_ns(), WritePrecision.NS)
-
-        self.write_api.write(self.bucket, self.org, point)
-
+        try:
+            current_V = self.get_voltage_volts()
+            current_W = self.get_power_watts()
+            current_A = self.get_current_amps()
+            
+            if self.prev_volt != current_V:
+                point = Point("sensor_data")\
+                    .tag("device", "camera")\
+                    .field("volts", current_V)\
+                    .field("watts", current_W)\
+                    .field("amps", current_A)\
+                    .time(int(time.time()), WritePrecision.S)
+                self.write_api.write(self.bucket, self.org, point)
+                
+                self.prev_volt = current_V
+                self.prev_watt = current_W
+                self.prev_amp = current_A
+            time.sleep(3)
+        except OSError:
+            print("Failed to read sensor data. Check the sensor connection.")
+    
     def cp_run(self):
         for i in range(5):
             self.record_measurement()

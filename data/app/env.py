@@ -39,12 +39,12 @@ class AHT10:
         time.sleep(0.5)
         return self.bus.read_i2c_block_data(self.address, 0x00, 6)
     
-    def update_measurements(self):
+    def record_measurements(self):
         try:
             current_T = self.read_temperature()
             current_H = self.read_humidity()
             
-            if self.prev_temp != current_T or self.prev_hum != current_H:
+            if self.prev_temp != current_T:
                 point = Point("sensor_data")\
                     .tag("device", 'environment')\
                     .field("temperature", current_T)\
@@ -60,7 +60,7 @@ class AHT10:
     
     def env_run(self):
         for i in range(5):
-            self.update_measurements()
+            self.record_measurements()
             time.sleep(5)
             
     def __del__(self):
