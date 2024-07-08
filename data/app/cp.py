@@ -58,7 +58,7 @@ class INA260Camera:
             print("Failed to read sensor data. Check the sensor connection.")
     
     def cp_run(self):
-        for i in range(30):
+        for i in range(10):
             self.record_measurement()
             time.sleep(5)
 

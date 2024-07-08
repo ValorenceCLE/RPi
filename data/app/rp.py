@@ -38,7 +38,7 @@ class INA260Router:
             current_W = self.get_power_watts()
             current_A = self.get_current_amps()
             
-            if self.prev_volt != current_V:
+            if self.prev_volt != current_V or self.prev_amp != current_A or self.prev_watt != current_W:
                 point = Point("sensor_data")\
                     .tag("device", "router")\
                     .field("volts", current_V)\
@@ -57,7 +57,7 @@ class INA260Router:
             print("Failed to read sensor data. Check the sensor connection.")
             
     def rp_run(self):
-        for i in range(30):
+        for i in range(10):
             self.record_measurement()
             time.sleep(5)
             

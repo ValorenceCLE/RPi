@@ -20,7 +20,7 @@ class NetworkPingTest:
 
     def run_ping_test(self):
         try:
-            response_list = ping(self.target_ip, count=10, verbose=True)
+            response_list = ping(self.target_ip, count=10, verbose=False)
             packet_loss = response_list.packet_loss
             avg_rtt = response_list.rtt_avg_ms
             max_rtt = response_list.rtt_max_ms
@@ -42,7 +42,7 @@ class NetworkPingTest:
             print(f"Failed to perform ping test: {e}")
             
     def net_run(self):
-        for i in range(30):
+        for i in range(10):
             self.run_ping_test()
             time.sleep(10)
     
