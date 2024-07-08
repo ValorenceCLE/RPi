@@ -56,3 +56,11 @@ def cell():
 
 if __name__ == "__main__":
     cell()
+
+
+#Build out script assuming we have a sim card
+#Build out a detailed error handling to make sure that instead of failing the script will try again later and restart
+#This script will be the most prone to blocking errors to it needs to be well set up
+#No advanced handling or analysis needs to be done for this data because we cant do anything about any possible issues
+#Run an SNMP poll every minute and save the data to the 'network_data' DB
+#Focus most of the detail of this script on making sure the script will not fail.

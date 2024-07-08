@@ -66,3 +66,16 @@ class AHT10:
             
     def __del__(self):
         self.client.close()
+
+
+#Set up scripts to poll sensors often (5-10s) Put data through initial validation check to identify issues quickly
+#If DP passes the validation check set up a waiting/averaging method to either collect one DP every minute or average all of the DP's polled in a minute
+#If DP fails validation check send to 'critical_data' and further process to identify error level
+#Set up validation to check if the values are outside an acceptable range (Too Cold < x > Too Hot)
+#Save outsiders to 'critical_data' group in DB marked with ID tags and LEVEL tags (INFO, WARNING, ERROR)
+#INFO: Probably no action besides save in DB
+#WARNING: Send MQTT message (LEVEL, Timestamp, ID/Device, Data), Update device status to WARNING (for Web App)
+#WARNING: Verify device status with ping; Passed Ping Test--> Continue as WARNING; Failed Ping Test--> Promote WARNING to ERROR
+#ERROR: Verify device status with ping; Passed Ping Test--> Demote to WARNING; Failed Ping Test--> Continue as ERROR
+#ERROR: Send Error level MQTT message, Event Responding to get device online (Power Cycle, Send Reboot API if possible)
+#ERROR: If Event Response Fails + Ping Verifies as OFFLINE still: Trigger backend API scripts to take needed shutdown and needed failsafes

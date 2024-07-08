@@ -91,3 +91,5 @@ def save(file_path=SYSTEM_INFO_PATH):
     with open(file_path, 'w') as json_file:
         json.dump(system_info, json_file, indent=4)
         
+#Use this file to handle getting Uptime and any other possible SNMP requests for the Front-End Web App.
+#Use FastAPI to create a REST API that can be called to quickly get needed info and keeping the load off of the Web App

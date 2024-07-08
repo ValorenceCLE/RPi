@@ -50,7 +50,20 @@ class NetworkPingTest:
         self.client.close()
             
 
-#This should have good error handling but even if the router is offline we should collect this data because it will show that the router was offline
-#We just need to make sure that it doesnt run into errors when trying to ping a possibly down router
-#Is jitter something we actually need to save?
-#Do we save all or some of the packet loss information since most the time it will be 0?
+#Set up another class that can be used by other scripts to run ping tests if needed.
+
+#Run a ping test every 60 seconds (Avg_RTT, Max_RTT, Min_RTT, Jitter(Max_RTT-Min_RTT), Packet_Loss)
+#If No packets lost save to normal DB (Avg_RTT, Max_RTT, Min_RTT, Jitter)*No Packet Loss
+#IF Packets Lost save to automatically move to 'critical_data' and run validation checks
+#If Packets Lost send data including packet losses through validation checks
+#VALIDATION CHECKS: Check all values to make sure they are in a given range. (Packets Lost =< 0) (Avg_RTT =< 100) Mabybe Jitter
+#MAKE SURE NORMAL DATA COLLECTION CYCLE BREAKS DURING VALIDATION CHECKS UNTIL ROUTER IS DEEMED "NORMAL"
+#PACKET LOSS CHECK: IF packet losses trigger the validation check then run a seperate or additional ping for further checks
+#PACKET LOSS CHECK: IF packet losses persist in further checks then promote automatically to WARNING
+#PACKET LOSS CHECK: IF packet losses stop in further checks then return to normal and log that DP in 'critical_data' as INFO
+#INFO: High Latency or Lost Packet. Just save the data to 'critical_data'
+#WARNING: High Latency AND Lost Packet or MULTIPLE Lost Packets: Send MQTT message, save with WARNING tag
+#ERROR: Any blocking error occurs or unable to send ping OR Continued Packet Loss (5+ min), Send MQTT message, save with ERROR tag
+#ERROR: For errors or failures make sure the script is still running, if not turn it back on.
+#ERROR: For continued packet loss send MQTT message and trigger API event process to reboot router.
+#NOTES: Make sure that when any one scripts triggers a restart that other scripts know that and know not to trigger another restart.
