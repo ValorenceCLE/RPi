@@ -26,7 +26,6 @@ class NetworkPingTest:
             max_rtt = response_list.rtt_max_ms
             min_rtt = response_list.rtt_min_ms
             
-            print(f"Ping Results: Avg RTT: {avg_rtt} ms, Max RTT: {max_rtt} ms, Min RTT: {min_rtt} ms, Packet Loss: {packet_loss * 100}%")
             point = Point("network_data")\
                 .tag("device", "router")\
                 .field("avg_rtt_ms", avg_rtt)\
@@ -35,11 +34,15 @@ class NetworkPingTest:
                 .field("packet_loss_percent", packet_loss * 100)\
                 .time(int(time.time()), WritePrecision.S)
             self.write_api.write(self.bucket, self.org, point)
+            print(f"Avg. Response Time: {avg_rtt}.")
+            print(f"Max. Response Time: {max_rtt}.")
+            print(f"Min. Response Time: {min_rtt}.")
+            print(f"Packets Lost (%): {packet_loss *100}.")
         except Exception as e:
             print(f"Failed to perform ping test: {e}")
             
     def net_run(self):
-        for i in range(5):
+        for i in range(30):
             self.run_ping_test()
             time.sleep(10)
     

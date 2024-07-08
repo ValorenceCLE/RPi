@@ -46,9 +46,9 @@ class INA260Router:
                     .field("amps", current_A)\
                     .time(int(time.time()), WritePrecision.S)
                 self.write_api.write(self.bucket, self.org, point)
-                print(current_V)
-                print(current_W)
-                print(current_A)
+                print(f"Router Volts: {current_V}.")
+                print(f"Router Watts: {current_W}.")
+                print(f"Router Amps: {current_A}.")
                 self.prev_volt = current_V
                 self.prev_watt = current_W
                 self.prev_amp = current_A
@@ -57,7 +57,7 @@ class INA260Router:
             print("Failed to read sensor data. Check the sensor connection.")
             
     def rp_run(self):
-        for i in range(10):
+        for i in range(30):
             self.record_measurement()
             time.sleep(5)
             

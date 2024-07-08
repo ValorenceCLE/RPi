@@ -51,8 +51,8 @@ class AHT10:
                     .field("humidity", current_H)\
                     .time(int(time.time()), WritePrecision.S)
                 self.write_api.write(self.bucket, self.org, point)
-                print(current_T)
-                print(current_H)
+                print(f"Current Temp: {current_T}.")
+                print(f"Current Humidity: {current_H}.")
                 self.prev_temp = current_T
                 self.prev_hum = current_H
             time.sleep(3)
@@ -60,7 +60,7 @@ class AHT10:
             print("Failed to read sensor data. Check the sensor connection.")
     
     def env_run(self):
-        for i in range(5):
+        for i in range(30):
             self.record_measurements()
             time.sleep(5)
             

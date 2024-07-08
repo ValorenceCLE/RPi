@@ -47,9 +47,9 @@ class INA260Camera:
                     .field("amps", current_A)\
                     .time(int(time.time()), WritePrecision.S)
                 self.write_api.write(self.bucket, self.org, point)
-                print(current_V)
-                print(current_W)
-                print(current_A)
+                print(f"Camera Volts: {current_V}.")
+                print(f"Camera Watts: {current_W}.")
+                print(f"Camera Amps: {current_A}.")
                 self.prev_volt = current_V
                 self.prev_watt = current_W
                 self.prev_amp = current_A
@@ -58,7 +58,7 @@ class INA260Camera:
             print("Failed to read sensor data. Check the sensor connection.")
     
     def cp_run(self):
-        for i in range(5):
+        for i in range(30):
             self.record_measurement()
             time.sleep(5)
 
