@@ -51,7 +51,7 @@ class INA260Camera:
 
         self.write_api.write(self.bucket, self.org, point)
 
-    def cp_test(self):
+    def cp_run(self):
         for i in range(5):
             self.record_measurement()
             time.sleep(5)

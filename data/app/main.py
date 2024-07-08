@@ -11,8 +11,8 @@ rp = INA260Router()
 def main():
     save()
     rp.rp_test()
-    cp.cp_test()
-    env.env_test()
+    cp.cp_run()
+    env.env_run()
     cell()
     #ping_test()
         
