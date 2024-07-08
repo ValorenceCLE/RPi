@@ -55,7 +55,7 @@ class INA260Router:
             print("Failed to read sensor data. Check the sensor connection.")
             
     def rp_run(self):
-        for i in range(5):
+        for i in range(10):
             self.record_measurement()
             time.sleep(5)
             
