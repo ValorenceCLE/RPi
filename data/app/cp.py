@@ -27,7 +27,7 @@ class INA260Camera:
         with open(self.SYSTEM_INFO_PATH, 'r') as file:
             data = json.load(file)
         self.serial = data["Camera"]["Serial_Number"]
-        self.sensor_id = self.serial + "-INA260"
+        self.sensor_id = data["Camera"]["Sensor_ID"]
 
     def get_current_amps(self):
         return round(self.ina260.current / 1000, 2)
@@ -89,7 +89,8 @@ class INA260Camera:
             .field("watts", watts)\
             .field("amps", amps)\
             .time(int(time.time()), WritePrecision.S)
-    
+        self.write_api.write(self.bucket, self.org, point)
+        
     def cp_run(self):
         for i in range(10):
             self.process_data()
