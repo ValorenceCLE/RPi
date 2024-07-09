@@ -5,15 +5,8 @@ import json
 from pysnmp.hlapi import SnmpEngine, CommunityData, UdpTransportTarget, ContextData, ObjectType, ObjectIdentity, getCmd
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions
-# Router model and OID mappings
-ROUTER_MODEL = "Pepwave MAX BR1 Pro 5G"
-OID_MAPPINGS = {
-    "Pepwave MAX BR1 Pro 5G": {
-        'rsrp_oid': '.1.3.6.1.2.1.1.1.0',
-        'rsrq_oid': '.1.3.6.1.2.1.1.5.0',
-        'sinr_oid': '.1.3.6.1.2.1.1.3.0'
-    }
-}
+
+
 class CellularMetrics:
     def __init__(self):
         self.token = os.getenv('DOCKER_INFLUXDB_INIT_ADMIN_TOKEN')
@@ -31,9 +24,9 @@ class CellularMetrics:
         self.serial = data["Router"]["Serial_Number"]
         OID_MAPPINGS = {
             "Peplink MAX BR1 Mini": {
-                'rsrp_oid': '.1.3.6.1.4.1.23695.200.1.12.1.1.1.7',
-                'rsrq_oid': '.1.3.6.1.4.1.23695.200.1.12.1.1.1.8',
-                'sinr_oid': '.1.3.6.1.4.1.23695.200.1.12.1.1.1.5'
+                'rsrp_oid': '.1.3.6.1.4.1.23695.200.1.12.1.1.1.7.0',
+                'rsrq_oid': '.1.3.6.1.4.1.23695.200.1.12.1.1.1.8.0',
+                'sinr_oid': '.1.3.6.1.4.1.23695.200.1.12.1.1.1.5.0'
             },
             "Pepwave MAX BR1 Pro 5G": {
                 'rsrp_oid': '.1.3.6.1.4.1.27662.200.1.12.1.1.1.7.0',
@@ -50,13 +43,12 @@ class CellularMetrics:
             errorIndication, errorStatus, errorIndex, varBinds = next(
                 getCmd(
                     engine,
-                    CommunityData(community, mpModel=2),
-                    UdpTransportTarget((host, 161)),
+                    CommunityData(community, mpModel=1),
+                    UdpTransportTarget((host, 161),timeout=1, retries=3),
                     ContextData(),
                     ObjectType(ObjectIdentity(oid))
                 )
             )
-
             if errorIndication:
                 print(f"SNMP error: {errorIndication}")
                 continue

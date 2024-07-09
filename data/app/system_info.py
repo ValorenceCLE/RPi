@@ -31,7 +31,7 @@ def get_snmp_data(ip_address, oid, community_string=COMMUNITY_STRING, retries=RE
         error_indication, error_status, error_index, var_binds = next(
             getCmd(SnmpEngine(),
                    CommunityData(community_string, mpModel=1),
-                   UdpTransportTarget((ip_address, 161)),
+                   UdpTransportTarget((ip_address, 161), timeout=1, retries=5),
                    ContextData(),
                    ObjectType(ObjectIdentity(oid)))
         )
