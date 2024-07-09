@@ -39,7 +39,7 @@ class INA260Camera:
         return round(self.ina260.power / 1000, 1)
     
     def validation_check(self, volts):
-        if volts < 8 or volts > 16:
+        if volts < 8 or volts > 10:
              return "ERROR"
         elif volts < 10 or volts > 14:
             return "WARNING"
