@@ -56,7 +56,7 @@ def update_rpi_info():
     return {
         'Serial_Number': serial_number,
         'System_Name': "R&D Test System",
-        'SensorID': serial_number + '-AHT10' if serial_number else None
+        'Sensor_ID': serial_number + '-AHT10' if serial_number else None
     }
     
 def get_device_info(device_name):

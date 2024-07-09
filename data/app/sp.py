@@ -25,7 +25,7 @@ class INA260System:
         with open(self.SYSTEM_INFO_PATH, 'r') as file:
             data = json.load(file)
         self.serial = data["RPi"]["Serial_Number"]
-        self.sensor_id = data["RPi"]["Sensor_ID"]
+        self.sensor_id = self.serial + "-INA260"
         
     def get_current_amps(self):
         return round(self.ina260.current / 1000, 3)
@@ -72,9 +72,9 @@ class INA260System:
     def save_normal(self, volts, watts, amps):
         point = Point("sensor_data")\
             .tag("device", "system")\
-            .field("volts", volts)\
-            .field("watts", watts)\
-            .field("amps", amps)\
+            .field("volts", self.ensure_float(volts))\
+            .field("watts", self.ensure_float(watts))\
+            .field("amps", self.ensure_float(amps))\
             .time(int(time.time()), WritePrecision.S)
         self.write_api.write(self.bucket, self.org, point)
             
@@ -83,12 +83,18 @@ class INA260System:
         point = Point("critical_data")\
             .tag("device", "system")\
             .tag("level", level)\
-            .field("volts", volts)\
-            .field("watts", watts)\
-            .field("amps", amps)\
+            .field("volts", self.ensure_float(volts))\
+            .field("watts", self.ensure_float(watts))\
+            .field("amps", self.ensure_float(amps))\
             .time(int(time.time()), WritePrecision.S)
         self.write_api.write(self.bucket, self.org, point)
-        
+    
+    def ensure_float(self, value):
+        try:
+            return float(value)
+        except ValueError:
+            return None
+    
     def sp_run(self):
         for i in range(10):
             self.process_data()

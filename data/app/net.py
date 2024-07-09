@@ -22,16 +22,17 @@ class NetworkPingTest:
         try:
             response_list = ping(self.target_ip, count=10, verbose=False)
             packet_loss = response_list.packet_loss
+            packet_loss = packet_loss * 100
             avg_rtt = response_list.rtt_avg_ms
             max_rtt = response_list.rtt_max_ms
             min_rtt = response_list.rtt_min_ms
             
             point = Point("network_data")\
                 .tag("device", "router")\
-                .field("avg_rtt_ms", avg_rtt)\
-                .field("max_rtt_ms", max_rtt)\
-                .field("min_rtt_ms", min_rtt)\
-                .field("packet_loss_percent", packet_loss * 100)\
+                .field("avg_rtt_ms", self.ensure_float(avg_rtt))\
+                .field("max_rtt_ms", self.ensure_float(max_rtt))\
+                .field("min_rtt_ms", self.ensure_float(min_rtt))\
+                .field("packet_loss_percent", packet_loss)\
                 .time(int(time.time()), WritePrecision.S)
             self.write_api.write(self.bucket, self.org, point)
             print(f"Avg. Response Time: {avg_rtt}.")
@@ -45,7 +46,13 @@ class NetworkPingTest:
         for i in range(10):
             self.run_ping_test()
             time.sleep(10)
-    
+            
+    def ensure_float(self, value):
+        try:
+            return float(value)
+        except ValueError:
+            return None
+        
     def __del__(self):
         self.client.close()
             

@@ -72,9 +72,9 @@ class INA260Router:
     def save_normal(self, volts, watts, amps):
         point = Point("sensor_data")\
             .tag("device", "router")\
-            .field("volts", volts)\
-            .field("watts", watts)\
-            .field("amps", amps)\
+            .field("volts", self.ensure_float(volts))\
+            .field("watts", self.ensure_float(watts))\
+            .field("amps", self.ensure_float(amps))\
             .time(int(time.time()), WritePrecision.S)
         self.write_api.write(self.bucket, self.org, point)
             
@@ -83,12 +83,18 @@ class INA260Router:
         point = Point("critical_data")\
             .tag("device", "router")\
             .tag("level", level)\
-            .field("volts", volts)\
-            .field("watts", watts)\
-            .field("amps", amps)\
+            .field("volts", self.ensure_float(volts))\
+            .field("watts", self.ensure_float(watts))\
+            .field("amps", self.ensure_float(amps))\
             .time(int(time.time()), WritePrecision.S)
         self.write_api.write(self.bucket, self.org, point)
-        
+    
+    def ensure_float(self, value):
+        try:
+            return float(value)
+        except ValueError:
+            return None
+    
     def rp_run(self):
         for i in range(10):
             self.process_data()

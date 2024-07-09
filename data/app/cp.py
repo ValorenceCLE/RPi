@@ -75,9 +75,9 @@ class INA260Camera:
     def save_normal(self, volts, watts, amps):
         point = Point("sensor_data")\
             .tag("device", "camera")\
-            .field("volts", volts)\
-            .field("watts", watts)\
-            .field("amps", amps)\
+            .field("volts", self.ensure_float(volts))\
+            .field("watts", self.ensure_float(watts))\
+            .field("amps", self.ensure_float(amps))\
             .time(int(time.time()), WritePrecision.S)
         self.write_api.write(self.bucket, self.org, point)
     
@@ -85,12 +85,18 @@ class INA260Camera:
         point = Point("critical_data")\
             .tag("device", "camera")\
             .tag("level", level)\
-            .field("volts", volts)\
-            .field("watts", watts)\
-            .field("amps", amps)\
+            .field("volts", self.ensure_float(volts))\
+            .field("watts", self.ensure_float(watts))\
+            .field("amps", self.ensure_float(amps))\
             .time(int(time.time()), WritePrecision.S)
         self.write_api.write(self.bucket, self.org, point)
-        
+    
+    def ensure_float(self, value):
+        try:
+            return float(value)
+        except ValueError:
+            return None
+    
     def cp_run(self):
         for i in range(10):
             self.process_data()

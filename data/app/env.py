@@ -4,6 +4,7 @@
 import time
 import smbus2
 import os
+import json
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions
 
@@ -17,9 +18,13 @@ class AHT10:
         self.bucket = os.getenv('DOCKER_INFLUXDB_INIT_BUCKET')
         self.client = InfluxDBClient(url=os.getenv('INFLUXDB_URL'), token=self.token, org=self.org)
         self.write_api = self.client.write_api(write_options=WriteOptions(write_type=SYNCHRONOUS))
-        
-        self.prev_temp = None
-        self.prev_hum = None
+        self.save_interval = 5
+        self.counter = 0
+        self.SYSTEM_INFO_PATH = '/app/device_info/system_info.json'
+        with open(self.SYSTEM_INFO_PATH, 'r') as file:
+            data = json.load(file)
+        self.serial = data["RPi"]["Serial_Number"]
+        self.sensor_id = data["RPi"]["Sensor_ID"]
         
     def init_sensor(self):
         self.bus.write_i2c_block_data(self.address, 0xE1, [0x08, 0x00])
@@ -39,29 +44,55 @@ class AHT10:
         time.sleep(0.5)
         return self.bus.read_i2c_block_data(self.address, 0x00, 6)
     
-    def record_measurements(self):
+    def validation_check(self, temperature):
+        if temperature < 10 or temperature > 100:
+            return "WARNING"
+        else:
+            return "NORMAL"
+        
+    def process_data(self):
         try:
             current_T = self.read_temperature()
             current_H = self.read_humidity()
-            
-            if self.prev_temp != current_T:
-                point = Point("sensor_data")\
-                    .tag("device", 'environment')\
-                    .field("temperature", current_T)\
-                    .field("humidity", current_H)\
-                    .time(int(time.time()), WritePrecision.S)
-                self.write_api.write(self.bucket, self.org, point)
-                print(f"Current Temp: {current_T}.")
-                print(f"Current Humidity: {current_H}.")
-                self.prev_temp = current_T
-                self.prev_hum = current_H
-            time.sleep(3)
+            validation_level = self.validation_check(current_T)
+            if validation_level == "WARNING":
+                self.save_critical(current_T, current_H, "WARNING")
+                #Turn on fan
+            else:
+                self.counter += 1
+                if self.counter >= self.save_interval:
+                    self.save_normal(current_T, current_H)
+                    self.counter = 0
         except OSError:
-            print("Failed to read sensor data. Check the sensor connection.")
+            print("Failed to read sensor data. Check Connection")
     
+    def save_normal(self, temperature, humidity):
+        point = Point("sensor_data")\
+            .tag("device", "system")\
+            .field("temperature", self.ensure_float(temperature))\
+            .field("humidity", self.ensure_float(humidity))\
+            .time(int(time.time()), WritePrecision.S)
+        self.write_api.write(self.bucket, self.org, point)
+            
+    def save_critical(self, temperature, humidity, level):
+        point = Point("critical_data")\
+            .tag("device", "system")\
+            .tag("level", level)\
+            .field("temperature", self.ensure_float(temperature))\
+            .field("humidity", self.ensure_float(humidity))\
+            .time(int(time.time()), WritePrecision.S)
+        self.write_api.write(self.bucket, self.org, point)
+            
+    def ensure_float(self, value):
+        try:
+            return float(value)
+        except ValueError:
+            return None
+        
+        
     def env_run(self):
         for i in range(10):
-            self.record_measurements()
+            self.process_data()
             time.sleep(5)
             
     def __del__(self):
