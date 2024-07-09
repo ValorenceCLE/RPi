@@ -22,7 +22,7 @@ class CellularMetrics:
             data = json.load(file)
         self.model = data["Router"]["Model"]
         self.serial = data["Router"]["Serial_Number"]
-        OID_MAPPINGS = {
+        self.OID_MAPPINGS = {
             "Peplink MAX BR1 Mini": {
                 'rsrp_oid': '.1.3.6.1.4.1.23695.200.1.12.1.1.1.7.0',
                 'rsrq_oid': '.1.3.6.1.4.1.23695.200.1.12.1.1.1.8.0',
@@ -61,7 +61,7 @@ class CellularMetrics:
         return results
     
     def process_data(self):
-        oid_dict = OID_MAPPINGS.get(self.model)
+        oid_dict = self.OID_MAPPINGS.get(self.model)
         if not oid_dict:
             print(f"No OID mapping found for {self.model}")
             return
