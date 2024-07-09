@@ -50,7 +50,7 @@ class CellularMetrics:
             errorIndication, errorStatus, errorIndex, varBinds = next(
                 getCmd(
                     engine,
-                    CommunityData(community, mpModel=1),
+                    CommunityData(community, mpModel=2),
                     UdpTransportTarget((host, 161)),
                     ContextData(),
                     ObjectType(ObjectIdentity(oid))
