@@ -35,10 +35,6 @@ class NetworkPingTest:
                 .field("packet_loss_percent", packet_loss)\
                 .time(int(time.time()), WritePrecision.S)
             self.write_api.write(self.bucket, self.org, point)
-            print(f"Avg. Response Time: {avg_rtt}.")
-            print(f"Max. Response Time: {max_rtt}.")
-            print(f"Min. Response Time: {min_rtt}.")
-            print(f"Packets Lost (%): {packet_loss *100}.")
         except Exception as e:
             print(f"Failed to perform ping test: {e}")
             

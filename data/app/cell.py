@@ -1,6 +1,10 @@
 import logging
+import os
+import time
+import json
 from pysnmp.hlapi import SnmpEngine, CommunityData, UdpTransportTarget, ContextData, ObjectType, ObjectIdentity, getCmd
-
+from influxdb_client import InfluxDBClient, Point, WritePrecision
+from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions
 # Router model and OID mappings
 ROUTER_MODEL = "Pepwave MAX BR1 Pro 5G"
 OID_MAPPINGS = {
@@ -10,52 +14,97 @@ OID_MAPPINGS = {
         'sinr_oid': '.1.3.6.1.2.1.1.3.0'
     }
 }
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-def fetch_snmp_data(host, community, oid_dict):
-    """Fetch SNMP data synchronously."""
-    engine = SnmpEngine()
-    results = {}
-    for oid_name, oid in oid_dict.items():
-        errorIndication, errorStatus, errorIndex, varBinds = next(
-            getCmd(
-                engine,
-                CommunityData(community, mpModel=1),
-                UdpTransportTarget((host, 161)),
-                ContextData(),
-                ObjectType(ObjectIdentity(oid))
+class CellularMetrics:
+    def __init__(self):
+        self.token = os.getenv('DOCKER_INFLUXDB_INIT_ADMIN_TOKEN')
+        self.org = os.getenv('DOCKER_INFLUXDB_INIT_ORG')
+        self.bucket = os.getenv('DOCKER_INFLUXDB_INIT_BUCKET')
+        self.url = os.getenv('INFLUXDB_URL')
+        self.client = InfluxDBClient(url=self.url, token=self.token, org=self.org)
+        self.write_api = self.client.write_api(write_options=WriteOptions(write_type=SYNCHRONOUS))
+        self.SYSTEM_INFO_PATH = '/app/device_info/system_info.json'
+        self.host = '192.168.1.1'
+        self.null = -9999
+        with open(self.SYSTEM_INFO_PATH, 'r') as file:
+            data = json.load(file)
+        self.model = data["Router"]["Model"]
+        self.serial = data["Router"]["Serial_Number"]
+        OID_MAPPINGS = {
+            "Peplink MAX BR1 Mini": {
+                'rsrp_oid': '.1.3.6.1.4.1.23695.200.1.12.1.1.1.7',
+                'rsrq_oid': '.1.3.6.1.4.1.23695.200.1.12.1.1.1.8',
+                'sinr_oid': '.1.3.6.1.4.1.23695.200.1.12.1.1.1.5'
+            },
+            "Pepwave MAX BR1 Pro 5G": {
+                'rsrp_oid': '.1.3.6.1.4.1.27662.200.1.12.1.1.1.7.0',
+                'rsrq_oid': '.1.3.6.1.4.1.27662.200.1.12.1.1.1.8.0',
+                'sinr_oid': '.1.3.6.1.4.1.27662.200.1.12.1.1.1.5.0'
+            }
+        }
+        
+    def fetch_snmp_data(self, host, community, oid_dict):
+        """Fetch SNMP data synchronously."""
+        engine = SnmpEngine()
+        results = {}
+        for oid_name, oid in oid_dict.items():
+            errorIndication, errorStatus, errorIndex, varBinds = next(
+                getCmd(
+                    engine,
+                    CommunityData(community, mpModel=1),
+                    UdpTransportTarget((host, 161)),
+                    ContextData(),
+                    ObjectType(ObjectIdentity(oid))
+                )
             )
-        )
 
-        if errorIndication:
-            print(f"SNMP error: {errorIndication}")
-            continue
-        elif errorStatus:
-            print(f"SNMP error at {errorIndex}: {errorStatus.prettyPrint()}")
-            continue
+            if errorIndication:
+                print(f"SNMP error: {errorIndication}")
+                continue
+            elif errorStatus:
+                print(f"SNMP error at {errorIndex}: {errorStatus.prettyPrint()}")
+                continue
+            else:
+                results[oid_name] = varBinds[0][1].prettyPrint()
+
+        return results
+    
+    def process_data(self):
+        oid_dict = OID_MAPPINGS.get(self.model)
+        if not oid_dict:
+            print(f"No OID mapping found for {self.model}")
+            return
+        data = self.fetch_snmp_data(self.host, 'public', oid_dict)
+        current_sinr = data.get('sinr_oid')
+        current_rsrp = data.get('rsrp_oid')
+        current_rsrq = data.get('rsrq_oid')
+        if current_sinr > self.null and current_rsrp > self.null and current_rsrq > self.null:
+            self.save_normal(current_sinr, current_rsrp, current_rsrq)
         else:
-            results[oid_name] = varBinds[0][1].prettyPrint()
-
-    return results
-
-def cell():
-    host = '192.168.1.1'  # SNMP server address
-    community = 'public'  # SNMP community
-    oid_dict = OID_MAPPINGS.get(ROUTER_MODEL)
-
-    if not oid_dict:
-        print(f"No OID mapping found for {ROUTER_MODEL}")
-        return
-
-    # Fetch and print SNMP data
-    data = fetch_snmp_data(host, community, oid_dict)
-    for key, value in data.items():
-        print(f"{key}: {value}")
-
-if __name__ == "__main__":
-    cell()
+            print("Null response from router, verify cellular connection.")
+            pass
+        
+    def save_normal(self, sinr, rsrp, rsrq):
+        point = Point("network_data")\
+            .tag("device", "router")\
+            .field("sinr", self.ensure_float(sinr))\
+            .field("rsrp", self.ensure_float(rsrp))\
+            .field("rsrq", self.ensure_float(rsrq))\
+            .time(int(time.time()), WritePrecision.S)
+        self.write_api.write(self.bucket, self.org, point)
+        
+    def ensure_float(self, value):
+        try:
+            return float(value)
+        except ValueError:
+            return None        
+        
+    def cell_run(self):
+        for i in range(10):
+            self.process_data()
+            time.sleep(30)
+            
+    def __del__(self):
+        self.client.close()
 
 
 #Build out script assuming we have a sim card
