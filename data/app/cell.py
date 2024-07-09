@@ -66,9 +66,9 @@ class CellularMetrics:
             print(f"No OID mapping found for {self.model}")
             return
         data = self.fetch_snmp_data(self.host, 'public', oid_dict)
-        current_sinr = data.get('sinr_oid')
-        current_rsrp = data.get('rsrp_oid')
-        current_rsrq = data.get('rsrq_oid')
+        current_sinr = self.ensure_float(data.get('sinr_oid'))
+        current_rsrp = self.ensure_float(data.get('rsrp_oid'))
+        current_rsrq = self.ensure_float(data.get('rsrq_oid'))
         if current_sinr > self.null and current_rsrp > self.null and current_rsrq > self.null:
             self.save_normal(current_sinr, current_rsrp, current_rsrq)
         else:
@@ -78,9 +78,9 @@ class CellularMetrics:
     def save_normal(self, sinr, rsrp, rsrq):
         point = Point("network_data")\
             .tag("device", "router")\
-            .field("sinr", self.ensure_float(sinr))\
-            .field("rsrp", self.ensure_float(rsrp))\
-            .field("rsrq", self.ensure_float(rsrq))\
+            .field("sinr", sinr)\
+            .field("rsrp", rsrp)\
+            .field("rsrq", rsrq)\
             .time(int(time.time()), WritePrecision.S)
         self.write_api.write(self.bucket, self.org, point)
         
