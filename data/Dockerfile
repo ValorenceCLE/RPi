@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY ./app /app
 COPY requirements.txt .
-RUN pip install --default-timeout=100 -r requirements.txt
+RUN pip install --upgrade pip && pip install --default-timeout=150 -r requirements.txt
 
 CMD ["python", "main.py"]
 
