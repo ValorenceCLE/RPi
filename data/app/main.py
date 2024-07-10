@@ -1,3 +1,4 @@
+import asyncio
 from cp import INA260Camera
 from rp import INA260Router
 from env import AHT10
@@ -9,13 +10,13 @@ cp = INA260Camera()
 rp = INA260Router()
 net = NetworkPingTest()
 #cell = CellularMetrics()
-def main():
+async def main():
     save()
+    await asyncio.gather(net.net_run())
     rp.rp_run()
     cp.cp_run()
     env.env_run()
     #cell.cell_run() Cellular collection is working. Turning off to return SIM card
-    net.net_run()
         
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

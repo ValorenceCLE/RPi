@@ -4,9 +4,10 @@
 
 import os
 import time
-from pythonping import ping # type: ignore
+import asyncio
+import aioping
 from influxdb_client import InfluxDBClient, Point, WritePrecision # type: ignore
-from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions # type: ignore
+from influxdb_client.client.write_api import ASYNCHRONOUS, WriteOptions # type: ignore
 
 class NetworkPingTest:
     def __init__(self, target_ip='8.8.8.8'):
@@ -16,59 +17,87 @@ class NetworkPingTest:
         self.bucket = os.getenv('DOCKER_INFLUXDB_INIT_BUCKET')
         self.url = os.getenv('INFLUXDB_URL')
         self.client = InfluxDBClient(url=self.url, token=self.token, org=self.org)
-        self.write_api = self.client.write_api(write_options=WriteOptions(write_type=SYNCHRONOUS))
+        self.write_api = self.client.write_api(write_options=WriteOptions(write_type=ASYNCHRONOUS))
+        self.collection_interval = 30 #45 Seconds
+        self.ping_count = 5 #Number of pings to be sent per ping test (5 ping tests per data point)
     
-    
-    
-    def run_ping_test(self):
+    async def run_ping_test(self):
         try:
-            response_list = ping(self.target_ip, count=10, verbose=False)
-            packet_loss = self.ensure_float(response_list.packet_loss) *100
-            avg_rtt = self.ensure_float(response_list.rtt_avg_ms)
-            max_rtt = self.ensure_float(response_list.rtt_max_ms)
-            min_rtt = self.ensure_float(response_list.rtt_min_ms)
-            validation_level = self.validation_check(packet_loss)
-            if validation_level == "NORMAL":
-                self.save_normal(avg_rtt, min_rtt, max_rtt)
+            response_list = await asyncio.gather(*[self.ping_host() for _ in range(self.ping_count)]) # Send 5 pings per Ping Test
+            packets_lost = response_list.count(None)
+            packet_loss_percent = response_list.count(None) / self.ping_count *100
+            avg_rtt = sum(filter(None, response_list)) / len(response_list)
+            max_rtt = max(filter(None, response_list))
+            min_rtt = min(filter(None, response_list))
+            jitter = max_rtt - min_rtt
+            validation_level = self.validation_check(packets_lost, avg_rtt)
+            if validation_level =="NORMAL":
+                await self.save_normal(avg_rtt, packet_loss_percent, jitter)
             else:
-                self.save_critical(avg_rtt, min_rtt, max_rtt, packet_loss, validation_level) 
-            
+                await self.save_critical(avg_rtt, min_rtt, max_rtt, packets_lost, validation_level)
         except Exception as e:
             print(f"Failed to perform ping test: {e}")
+            #Implement a counter to see if it has uploaded several points to the critical bucket in a row.
+            #This would mean consistant errors and need for at least a notification/alert
             
-    def validation_check(self, packet_loss):
-        if packet_loss > 2:
-            return "ERROR"
-        elif packet_loss > 1:
-            return "WARNING"
+    async def ping_host(self):
+        try:
+            delay = await aioping.ping(self.target_ip)
+            return delay * 1000 # Convert (s) --> (ms)
+        except TimeoutError:
+            return None
+        
+    async def router_online(self, host='192.168.1.1', timeout=1):
+        try:
+            delay = await aioping.ping(host, timeout=timeout)
+            return True
+        except TimeoutError:
+            return False
+        
+    def validation_check(self, packets_lost, avg_rtt):
+        online = self.router_online()
+        if packets_lost == self.ping_count:
+            if online:
+                return "WARNING"
+            else:
+                return "ERROR"
+            #Run further checks specifically on the router just to check if its online.
+            #If router OFFLINE send Pub/Sub message
+        elif packets_lost < self.ping_count and packets_lost > 2:
+            if online:
+                return "WARNING"
+            else:
+                return "ERROR"
+            #Check if router is ONLINE, if 
+        elif packets_lost > 0 or avg_rtt > 200:
+            return "INFO"
         else:
             return "NORMAL"
-    
-    def save_normal(self, avg, min, max):
-        test = self.run_ping_test()
+        
+    async def save_normal(self, avg_rtt, packet_loss_percent, jitter):
         point = Point("network_data")\
             .tag("device", "router")\
-            .field("avg_rtt_ms", avg)\
-            .field("min_rtt_ms", min)\
-            .field("max_rtt_ms", max)\
+            .field("avg_rtt_ms", avg_rtt)\
+            .field("packet_loss_percent", packet_loss_percent)\
+            .field("jitter", jitter)\
             .time(int(time.time()), WritePrecision.S)
-        self.write_api.write(self.bucket, self.org, point)
+        await self.write_api.write(self.bucket, self.org, point)
     
-    def save_critical(self, avg, min, max, packet_loss, level):
+    async def save_critical(self, avg, min, max, packets_lost, level):
         point = Point("critical_data")\
             .tag("device", "router")\
             .tag("level", level)\
             .field("avg_rtt_ms", avg)\
             .field("min_rtt_ms", min)\
             .field("max_rtt_ms", max)\
-            .field("packet_loss_percent", packet_loss)\
+            .field("packets_lost", packets_lost)\
             .time(int(time.time()), WritePrecision.S)
-        self.write_api.write(self.bucket, self.org, point)
+        await self.write_api.write(self.bucket, self.org, point)
     
-    def net_run(self):
-        for i in range(10):
-            self.run_ping_test()
-            time.sleep(10)
+    async def net_run(self):
+        while True:
+            await self.run_ping_test()
+            await asyncio.sleep(self.collection_interval)
             
     def ensure_float(self, value):
         try:
@@ -79,9 +108,7 @@ class NetworkPingTest:
     def __del__(self):
         self.client.close()
             
-
 #Set up another class that can be used by other scripts to run ping tests if needed.
-
 #Run a ping test every 60 seconds (Avg_RTT, Max_RTT, Min_RTT, Jitter(Max_RTT-Min_RTT), Packet_Loss)
 #If No packets lost save to normal DB (Avg_RTT, Max_RTT, Min_RTT, Jitter)*No Packet Loss
 #IF Packets Lost save to automatically move to 'critical_data' and run validation checks
