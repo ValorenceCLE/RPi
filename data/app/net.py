@@ -24,9 +24,9 @@ class NetworkPingTest:
         try:
             response_list = ping(self.target_ip, count=10, verbose=False)
             packet_loss = self.ensure_float(response_list.packet_loss) *100
-            avg_rtt = self.ensure_float(response_list.rtt_avg_ms) /1000
-            max_rtt = self.ensure_float(response_list.rtt_max_ms) /1000
-            min_rtt = self.ensure_float(response_list.rtt_min_ms) /1000
+            avg_rtt = self.ensure_float(response_list.rtt_avg_ms)
+            max_rtt = self.ensure_float(response_list.rtt_max_ms)
+            min_rtt = self.ensure_float(response_list.rtt_min_ms)
             validation_level = self.validation_check(packet_loss)
             if validation_level == "NORMAL":
                 self.save_normal(avg_rtt, min_rtt, max_rtt)
