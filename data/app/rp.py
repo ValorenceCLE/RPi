@@ -3,7 +3,7 @@
 #i.e: 192F10E882C7-INA260
 import os
 import time
-import board
+import board # type: ignore
 import json
 import adafruit_ina260 # type: ignore
 from influxdb_client import InfluxDBClient, Point, WritePrecision # type: ignore
