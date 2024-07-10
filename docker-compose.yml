@@ -22,12 +22,20 @@ services:
     privileged: true
     environment:
       - INFLUXDB_URL=http://influxdb:8086
+      - REDIS_HOST=redis
     env_file:
       - ./config/influxdb.env
     depends_on:
       influxdb:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+  redis:
+    image: redis:alpine
+    ports:
+      -"6379:6379"
 
 volumes:
   influxdb_data:
   device_info:
+

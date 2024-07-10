@@ -5,12 +5,17 @@ import os
 import time
 import board
 import json
+import redis
 import adafruit_ina260
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions
 
 class INA260Camera:
     def __init__(self):
+        
+        redis_host = os.getenv('REDIS_HOST', 'localhost')
+        self.redis = redis.Redis(host=redis_host, port=6379, db=0, decode_responses=True)
+        
         i2c = board.I2C()  # Setup I2C connection
         self.ina260 = adafruit_ina260.INA260(i2c, address=0x41)  # Initialize INA260 sensor
         # Load environment variables
@@ -29,6 +34,9 @@ class INA260Camera:
         self.serial = data["Camera"]["Serial_Number"]
         self.sensor_id = data["Camera"]["Sensor_ID"]
 
+    def publish_message(self, channel, message):
+        self.redis.publish(channel, message)
+    
     def get_current_amps(self):
         return round(self.ina260.current / 1000, 2)
 
@@ -99,6 +107,7 @@ class INA260Camera:
     
     def cp_run(self):
         for i in range(10):
+            self.publish_message('test_channel', 'Hello, Redis')
             self.process_data()
             time.sleep(5)
 
