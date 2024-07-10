@@ -48,9 +48,9 @@ class NetworkPingTest:
         test = self.run_ping_test()
         point = Point("network_data")\
             .tag("device", "router")\
-            .field("avg_rtt", avg)\
-            .field("min_rtt", min)\
-            .field("max_rtt", max)\
+            .field("avg_rtt_ms", avg)\
+            .field("min_rtt_ms", min)\
+            .field("max_rtt_ms", max)\
             .time(int(time.time()), WritePrecision.S)
         self.write_api.write(self.bucket, self.org, point)
     
@@ -58,10 +58,10 @@ class NetworkPingTest:
         point = Point("critical_data")\
             .tag("device", "router")\
             .tag("level", level)\
-            .field("avg_rtt", avg)\
-            .field("min_rtt", min)\
-            .field("max_rtt", max)\
-            .field("packet_loss", packet_loss)\
+            .field("avg_rtt_ms", avg)\
+            .field("min_rtt_ms", min)\
+            .field("max_rtt_ms", max)\
+            .field("packet_loss_percent", packet_loss)\
             .time(int(time.time()), WritePrecision.S)
         self.write_api.write(self.bucket, self.org, point)
     
