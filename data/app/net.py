@@ -17,27 +17,54 @@ class NetworkPingTest:
         self.url = os.getenv('INFLUXDB_URL')
         self.client = InfluxDBClient(url=self.url, token=self.token, org=self.org)
         self.write_api = self.client.write_api(write_options=WriteOptions(write_type=SYNCHRONOUS))
-
+    
+    
+    
     def run_ping_test(self):
         try:
             response_list = ping(self.target_ip, count=10, verbose=False)
-            packet_loss = response_list.packet_loss
-            packet_loss = packet_loss * 100
-            avg_rtt = response_list.rtt_avg_ms
-            max_rtt = response_list.rtt_max_ms
-            min_rtt = response_list.rtt_min_ms
+            packet_loss = self.ensure_float(response_list.packet_loss) *100
+            avg_rtt = self.ensure_float(response_list.rtt_avg_ms) /1000
+            max_rtt = self.ensure_float(response_list.rtt_max_ms) /1000
+            min_rtt = self.ensure_float(response_list.rtt_min_ms) /1000
+            validation_level = self.validation_check(packet_loss)
+            if validation_level == "NORMAL":
+                self.save_normal(avg_rtt, min_rtt, max_rtt)
+            else:
+                self.save_critical(avg_rtt, min_rtt, max_rtt, packet_loss, validation_level) 
             
-            point = Point("network_data")\
-                .tag("device", "router")\
-                .field("avg_rtt_ms", self.ensure_float(avg_rtt))\
-                .field("max_rtt_ms", self.ensure_float(max_rtt))\
-                .field("min_rtt_ms", self.ensure_float(min_rtt))\
-                .field("packet_loss_percent", packet_loss)\
-                .time(int(time.time()), WritePrecision.S)
-            self.write_api.write(self.bucket, self.org, point)
         except Exception as e:
             print(f"Failed to perform ping test: {e}")
             
+    def validation_check(self, packet_loss):
+        if packet_loss > 2:
+            return "ERROR"
+        elif packet_loss > 1:
+            return "WARNING"
+        else:
+            return "NORMAL"
+    
+    def save_normal(self, avg, min, max):
+        test = self.run_ping_test()
+        point = Point("network_data")\
+            .tag("device", "router")\
+            .field("avg_rtt", avg)\
+            .field("min_rtt", min)\
+            .field("max_rtt", max)\
+            .time(int(time.time()), WritePrecision.S)
+        self.write_api.write(self.bucket, self.org, point)
+    
+    def save_critical(self, avg, min, max, packet_loss, level):
+        point = Point("critical_data")\
+            .tag("device", "router")\
+            .tag("level", level)\
+            .field("avg_rtt", avg)\
+            .field("min_rtt", min)\
+            .field("max_rtt", max)\
+            .field("packet_loss", packet_loss)\
+            .time(int(time.time()), WritePrecision.S)
+        self.write_api.write(self.bucket, self.org, point)
+    
     def net_run(self):
         for i in range(10):
             self.run_ping_test()
