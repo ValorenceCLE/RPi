@@ -3,8 +3,8 @@ import os
 import time
 import json
 from pysnmp.hlapi import SnmpEngine, CommunityData, UdpTransportTarget, ContextData, ObjectType, ObjectIdentity, getCmd
-from influxdb_client import InfluxDBClient, Point, WritePrecision
-from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions
+from influxdb_client import InfluxDBClient, Point, WritePrecision # type: ignore
+from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions # type: ignore
 
 
 class CellularMetrics:

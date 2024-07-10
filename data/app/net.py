@@ -4,9 +4,9 @@
 
 import os
 import time
-from pythonping import ping
-from influxdb_client import InfluxDBClient, Point, WritePrecision
-from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions
+from pythonping import ping # type: ignore
+from influxdb_client import InfluxDBClient, Point, WritePrecision # type: ignore
+from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions # type: ignore
 
 class NetworkPingTest:
     def __init__(self, target_ip='8.8.8.8'):

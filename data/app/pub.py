@@ -1,4 +1,4 @@
-import redis
+import redis # type: ignore
 
 def publish_message():
     r = redis.Redis(host='redis', port=6379)  # Use the service name as the hostname

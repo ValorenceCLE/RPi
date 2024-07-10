@@ -5,8 +5,8 @@ import time
 import smbus2
 import os
 import json
-from influxdb_client import InfluxDBClient, Point, WritePrecision
-from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions
+from influxdb_client import InfluxDBClient, Point, WritePrecision # type: ignore
+from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions # type: ignore
 
 class AHT10:
     def __init__(self, i2c_bus=1, address=0x38):

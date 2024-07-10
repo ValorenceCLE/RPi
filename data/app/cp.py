@@ -5,9 +5,9 @@ import os
 import time
 import board
 import json
-import adafruit_ina260
-from influxdb_client import InfluxDBClient, Point, WritePrecision
-from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions
+import adafruit_ina260 # type: ignore
+from influxdb_client import InfluxDBClient, Point, WritePrecision # type: ignore
+from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions # type: ignore
 
 class INA260Camera:
     def __init__(self):
