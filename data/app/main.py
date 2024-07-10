@@ -7,6 +7,8 @@ from system_info import save
 
 import os
 import redis
+from time import sleep
+from threading import Thread
 
 env = AHT10()
 cp = INA260Camera()
@@ -37,8 +39,16 @@ def main():
     env.env_run()
     #cell.cell_run() Cellular collection is working. Turning off to return SIM card
     net.net_run()
-        
-if __name__ == "__main__":
+    
+def redis_test():
     subscriber = RedisSubscriber()
     subscriber.listen('test_channel')
-    main()
+        
+if __name__ == "__main__":
+    
+    thread1 = Thread(target=main)
+    thread2 = Thread(target=redis_test)
+    thread1.start()
+    thread2.start()
+    thread1.join()
+    thread2.join()
