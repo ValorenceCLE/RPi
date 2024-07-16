@@ -22,9 +22,9 @@ class CellularMetrics:
         self.model = data["Router"]["Model"]
         self.serial = data["Router"]["Serial_Number"]
         self.MIB_NAMES = {
-            'SNMPv2-MIB': 'cellularSignalSinr.0',
-            'SNMPv2-MIB': 'cellularSignalRsrp.0',
-            'SNMPv2-MIB': 'cellularSignalRsrq.0'
+            'SNMPv2-MIB': 'cellularSignalSinr',
+            'SNMPv2-MIB': 'cellularSignalRsrp',
+            'SNMPv2-MIB': 'cellularSignalRsrq'
         }
         
     async def fetch_snmp_data(self, host, community, mib_triplets):
