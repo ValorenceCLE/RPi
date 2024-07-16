@@ -27,7 +27,7 @@ from rp import INA260Router
 from env import AHT10
 from net import NetworkPing
 from cell import CellularMetrics
-from system_info import save
+#from system_info import save
 
 env = AHT10()
 cp = INA260Camera()
@@ -40,7 +40,7 @@ async def run_synchronous_task(task_func):
     await asyncio.to_thread(task_func)
 
 async def main():
-    save()
+    #save()
 
     # Run the asynchronous network ping test
     async_tasks = [
