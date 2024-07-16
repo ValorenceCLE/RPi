@@ -1,107 +1,93 @@
-import logging
+#New SNMP script that uses Redis and Async.
+#Make sure that we set it up to send all GET requests at the same time rather than one after another.
 import os
-import time
 import json
-from pysnmp.hlapi import SnmpEngine, CommunityData, UdpTransportTarget, ContextData, ObjectType, ObjectIdentity, getCmd
-from influxdb_client import InfluxDBClient, Point, WritePrecision # type: ignore
-from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions # type: ignore
+from datetime import datetime
+import asyncio
+from redis.asyncio import Redis
+from pysnmp.hlapi.asyncio import *
 
 
 class CellularMetrics:
     def __init__(self):
-        self.token = os.getenv('DOCKER_INFLUXDB_INIT_ADMIN_TOKEN')
-        self.org = os.getenv('DOCKER_INFLUXDB_INIT_ORG')
-        self.bucket = os.getenv('DOCKER_INFLUXDB_INIT_BUCKET')
-        self.url = os.getenv('INFLUXDB_URL')
-        self.client = InfluxDBClient(url=self.url, token=self.token, org=self.org)
-        self.write_api = self.client.write_api(write_options=WriteOptions(write_type=SYNCHRONOUS))
+        self.redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
+        self.redis = Redis.from_url(self.redis_url)
         self.SYSTEM_INFO_PATH = '/app/device_info/system_info.json'
         self.host = '192.168.1.1'
         self.null = -9999
+        self.collection_interval = 30  # Interval in seconds between SNMP requests
         with open(self.SYSTEM_INFO_PATH, 'r') as file:
             data = json.load(file)
         self.model = data["Router"]["Model"]
         self.serial = data["Router"]["Serial_Number"]
-        self.OID_MAPPINGS = {
-            "Peplink MAX BR1 Mini": {
-                'rsrp_oid': '.1.3.6.1.4.1.23695.200.1.12.1.1.1.7.0',
-                'rsrq_oid': '.1.3.6.1.4.1.23695.200.1.12.1.1.1.8.0',
-                'sinr_oid': '.1.3.6.1.4.1.23695.200.1.12.1.1.1.5.0'
-            },
-            "Pepwave MAX BR1 Pro 5G": {
-                'rsrp_oid': '.1.3.6.1.4.1.27662.200.1.12.1.1.1.7.0',
-                'rsrq_oid': '.1.3.6.1.4.1.27662.200.1.12.1.1.1.8.0',
-                'sinr_oid': '.1.3.6.1.4.1.27662.200.1.12.1.1.1.5.0'
-            }
+        self.MIB_NAMES = {
+            'sinr_mib': 'cellularSignalSinr.0',
+            'rsrp_mib': 'cellularSignalRsrp.0',
+            'rsrq_mib': 'cellularSignalRsrq.0'
         }
         
-    def fetch_snmp_data(self, host, community, oid_dict):
-        """Fetch SNMP data synchronously."""
+    async def fetch_snmp_data(self, host, community, mib_triplets):
+        """Fetch SNMP data asynchronously using bulkCmd."""
         engine = SnmpEngine()
         results = {}
-        for oid_name, oid in oid_dict.items():
-            errorIndication, errorStatus, errorIndex, varBinds = next(
-                getCmd(
-                    engine,
-                    CommunityData(community, mpModel=1),
-                    UdpTransportTarget((host, 161),timeout=1, retries=3),
-                    ContextData(),
-                    ObjectType(ObjectIdentity(oid))
-                )
-            )
-            if errorIndication:
-                print(f"SNMP error: {errorIndication}")
-                continue
-            elif errorStatus:
-                print(f"SNMP error at {errorIndex}: {errorStatus.prettyPrint()}")
-                continue
-            else:
-                results[oid_name] = varBinds[0][1].prettyPrint()
-
+        errorIndication, errorStatus, errorIndex, varBindTable = await bulkCmd(
+            engine,
+            CommunityData(community, mpModel=1),
+            UdpTransportTarget((host, 161), timeout=1, retries=3),
+            ContextData(),
+            0, len(mib_triplets),  # Fetch only the needed OIDs
+            *[ObjectType(ObjectIdentity(*triplet)) for triplet in mib_triplets]
+        )
+        if errorIndication:
+            print(f"SNMP error: {errorIndication}")
+        elif errorStatus:
+            print(f"SNMP error at {errorIndex}: {errorStatus.prettyPrint()}")
+        else:
+            for varBindRow in varBindTable:
+                for varBind in varBindRow:
+                    oid, value = varBind
+                    for triplet in mib_triplets:
+                        mib_name = f"{triplet[0]}::{triplet[1]}.0"
+                        if mib_name in oid.prettyPrint():
+                            results[triplet[1]] = value.prettyPrint()  # Use MIB object name as key
         return results
     
-    def process_data(self):
-        oid_dict = self.OID_MAPPINGS.get(self.model)
-        if not oid_dict:
-            print(f"No OID mapping found for {self.model}")
-            return
-        data = self.fetch_snmp_data(self.host, 'public', oid_dict)
-        current_sinr = self.ensure_float(data.get('sinr_oid'))
-        current_rsrp = self.ensure_float(data.get('rsrp_oid'))
-        current_rsrq = self.ensure_float(data.get('rsrq_oid'))
-        if current_sinr > self.null and current_rsrp > self.null and current_rsrq > self.null:
-            self.save_normal(current_sinr, current_rsrp, current_rsrq)
+    async def process_data(self):
+        data = await self.fetch_snmp_data(self.host, 'public', self.MIB_NAMES)
+        sinr = self.ensure_float(data.get('cellularSignalSinr'))
+        rsrp = self.ensure_float(data.get('cellularSignalRsrp'))
+        rsrq = self.ensure_float(data.get('cellularSignalRsrq'))
+        if sinr > self.null and rsrp > self.null and rsrq > self.null:
+            await self.stream_data(sinr, rsrp, rsrq)
         else:
-            print("Null response from router, verify cellular connection.")
-            pass
-        
-    def save_normal(self, sinr, rsrp, rsrq):
-        point = Point("network_data")\
-            .tag("device", "router")\
-            .field("sinr", sinr)\
-            .field("rsrp", rsrp)\
-            .field("rsrq", rsrq)\
-            .time(int(time.time()), WritePrecision.S)
-        self.write_api.write(self.bucket, self.org, point)
-        
+            print("Invalid SNMP response, verify cellular connection.")
+    
+    async def stream_data(self, sinr, rsrp, rsrq):
+        timestamp = datetime.utcnow().isoformat()
+        data = {
+            "timestamp": timestamp,
+            "sinr": sinr,
+            "rsrp": rsrp,
+            "rsrq": rsrq
+        }
+        await self.redis.xadd('cellular_data', data)
+        print(data)
+    
     def ensure_float(self, value):
         try:
             return float(value)
         except ValueError:
-            return None        
+            return self.null
         
-    def cell_run(self):
-        for i in range(10):
-            self.process_data()
-            time.sleep(30)
+    async def cell_run(self):
+        while True:
+            await self.process_data()
+            await asyncio.sleep(self.collection_interval)
             
     def __del__(self):
-        self.client.close()
-
-
-#Build out script assuming we have a sim card
-#Build out a detailed error handling to make sure that instead of failing the script will try again later and restart
-#This script will be the most prone to blocking errors to it needs to be well set up
-#No advanced handling or analysis needs to be done for this data because we cant do anything about any possible issues
-#Run an SNMP poll every minute and save the data to the 'network_data' DB
-#Focus most of the detail of this script on making sure the script will not fail.
+        self.redis.close()
+        
+if __name__ == "__main__":
+    cell = CellularMetrics()
+    asyncio.run(cell.cell_run())
+        

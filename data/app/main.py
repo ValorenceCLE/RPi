@@ -25,14 +25,15 @@ import asyncio
 from cp import INA260Camera
 from rp import INA260Router
 from env import AHT10
-from net import NetworkPingTest
+from net import NetworkPing
+from cell import CellularMetrics
 from system_info import save
 
 env = AHT10()
 cp = INA260Camera()
 rp = INA260Router()
-net = NetworkPingTest()
-# cell = CellularMetrics()
+net = NetworkPing()
+cell = CellularMetrics()
 
 async def run_synchronous_task(task_func):
     """Run a synchronous task in a separate thread."""
@@ -43,7 +44,8 @@ async def main():
 
     # Run the asynchronous network ping test
     async_tasks = [
-        net.net_run()
+        net.net_run(),
+        cell.cell_run()
     ]
 
     # Run the synchronous tasks using asyncio.to_thread
@@ -51,7 +53,6 @@ async def main():
         run_synchronous_task(rp.rp_run),
         run_synchronous_task(cp.cp_run),
         run_synchronous_task(env.env_run),
-        # run_synchronous_task(cell.cell_run)  # Cellular collection is working. Turning off to return SIM card
     ]
 
     # Combine both async and sync tasks

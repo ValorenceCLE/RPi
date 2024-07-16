@@ -9,11 +9,14 @@ import adafruit_ina260 # type: ignore
 from influxdb_client import InfluxDBClient, Point, WritePrecision # type: ignore
 from influxdb_client.client.write_api import SYNCHRONOUS, WriteOptions # type: ignore
 
+    #Converting Sync functions to Async functions:
+    #async def get_current_amps(self):
+        #return await asyncio.to_thread(lambda: round(self.ina260.current / 1000, 2))
+        
 class INA260Camera:
     def __init__(self):
         i2c = board.I2C()  # Setup I2C connection
         self.ina260 = adafruit_ina260.INA260(i2c, address=0x41)  # Initialize INA260 sensor
-        # Load environment variables
         self.token = os.getenv('DOCKER_INFLUXDB_INIT_ADMIN_TOKEN')
         self.org = os.getenv('DOCKER_INFLUXDB_INIT_ORG')
         self.bucket = os.getenv('DOCKER_INFLUXDB_INIT_BUCKET')
