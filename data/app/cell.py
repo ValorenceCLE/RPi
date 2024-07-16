@@ -5,7 +5,8 @@ import json
 from datetime import datetime
 import asyncio
 from redis.asyncio import Redis
-from pysnmp.hlapi.asyncio import *
+from pysnmp.entity.engine import SnmpEngine
+from pysnmp.hlapi.asyncio import CommunityData, UdpTransportTarget, ContextData, ObjectType, bulkCmd, ObjectIdentity
 
 
 class CellularMetrics:
