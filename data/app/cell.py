@@ -35,12 +35,11 @@ class CellularMetrics:
     async def fetch_snmp_data(self, host, community, port, oid_mappings):
         async with Slim() as slim:
             var_binds = [ObjectType(ObjectIdentity(oid)) for oid in oid_mappings.values()]
-            errorIndication, errorStatus, errorIndex, varBindTable = await slim.bulkCmd(
+            errorIndication, errorStatus, errorIndex, varBindTable = await slim.get(
                 community,
                 host,
                 port,
                 0, 
-                len(var_binds), #Limit the request so that it doesnt send more requests than the length of the oid map (3)
                 *var_binds
             )
             if errorIndication:
