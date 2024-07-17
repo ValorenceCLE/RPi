@@ -1,6 +1,6 @@
 import json
 import os
-from pysnmp.hlapi.asyncio import SnmpEngine, CommunityData, UdpTransportTarget, ContextData, ObjectType, ObjectIdentity, getCmd
+from pysnmp.hlapi import *
 import logging
 
 MODEL_OID = '.1.3.6.1.2.1.1.1.0'

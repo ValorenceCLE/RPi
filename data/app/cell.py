@@ -5,8 +5,7 @@ import json
 from datetime import datetime
 import asyncio
 from redis.asyncio import Redis
-from pysnmp.entity.engine import SnmpEngine
-from pysnmp.hlapi.asyncio import CommunityData, UdpTransportTarget, ContextData, ObjectType, bulkCmd, ObjectIdentity
+from pysnmp.hlapi.asyncio import CommunityData, UdpTransportTarget, ContextData, ObjectType, bulkCmd, ObjectIdentity, SnmpEngine
 
 
 class CellularMetrics:
@@ -21,11 +20,11 @@ class CellularMetrics:
             data = json.load(file)
         self.model = data["Router"]["Model"]
         self.serial = data["Router"]["Serial_Number"]
-        self.MIB_NAMES = {
-            'SNMPv2-MIB': 'cellularSignalSinr',
-            'SNMPv2-MIB': 'cellularSignalRsrp',
-            'SNMPv2-MIB': 'cellularSignalRsrq'
-        }
+        self.MIB_NAMES = [
+            ('SNMPv2-MIB', 'cellularSignalSinr', 0),
+            ('SNMPv2-MIB', 'cellularSignalRsrp', 0),
+            ('SNMPv2-MIB', 'cellularSignalRsrq', 0),
+        ]
         
     async def fetch_snmp_data(self, host, community, mib_triplets):
         """Fetch SNMP data asynchronously using bulkCmd."""
@@ -47,10 +46,8 @@ class CellularMetrics:
             for varBindRow in varBindTable:
                 for varBind in varBindRow:
                     oid, value = varBind
-                    for triplet in mib_triplets:
-                        mib_name = f"{triplet[0]}::{triplet[1]}.0"
-                        if mib_name in oid.prettyPrint():
-                            results[triplet[1]] = value.prettyPrint()  # Use MIB object name as key
+                    if oid.prettyPrint() in [str(ObjectIdentity(*triplet)) for triplet in mib_triplets]:
+                        results[oid.prettyPrint()] = value.prettyPrint()
         return results
     
     async def process_data(self):
