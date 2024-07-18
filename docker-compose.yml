@@ -11,9 +11,9 @@ services:
       - ./config/influxdb.env
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8086/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 1s
+      timeout: 3s
+      retries: 10
 
   data_collection:
     build: ./data
@@ -26,14 +26,18 @@ services:
     env_file:
       - ./config/influxdb.env
     depends_on:
-    - redis
-    influxdb:
-        condition: service_healthy
+      influxdb:
+          condition: service_healthy
+      redis:
+          condition: service_healthy
 
   redis:
-    image: redis:alpine
-    ports:
-      - "6379:6379"
+    image: redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 3s
+      retries: 10
 
 volumes:
   influxdb_data:
