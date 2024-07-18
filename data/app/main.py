@@ -58,4 +58,4 @@ async def main():
 
 if __name__ == "__main__":
     #save()
-    asyncio.run(main())
+    asyncio.run(cell.cell_run())
