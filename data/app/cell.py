@@ -33,15 +33,20 @@ class CellularMetrics:
         
     async def fetch_snmp_data(self, host, community, oid_mappings):
         """Fetch SNMP data asynchronously using aiosnmp"""
+        counter = 0
         oids = [oid for oid in oid_mappings.values()]
         results = {}
+        start_time = datetime.utcnow()
         async with aiosnmp.Snmp(host=host, community=community, port=161, timeout=5, retries=3, max_repetitions=10) as snmp:
             response = await snmp.get(oids)
             for varbind in response:
                 for key, oid in oid_mappings.items():
                     if varbind.oid == oid:
                         results[key] = varbind.value
-        print(f"SNMP results: {results}")
+        counter += 1
+        end_time = datetime.utcnow()
+        elapsed_time = (end_time - start_time).total_seconds()
+        print(f"SNMP request #{counter}, took {elapsed_time} seconds\nSNMP request response:\n{results}")
         return results
     
     async def process_data(self):
@@ -74,7 +79,7 @@ class CellularMetrics:
             return self.null
         
     async def cell_run(self):
-        for i in range(3):
+        while True:
             await self.process_data()
             await asyncio.sleep(30)
             
