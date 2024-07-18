@@ -4,7 +4,7 @@ from datetime import datetime
 import asyncio
 from redis.asyncio import Redis
 import aiosnmp
-
+import time
 # OID mappings for different router models
 OID_MAPPINGS = {
     "Peplink MAX BR1 Mini": {
@@ -51,9 +51,12 @@ class CellularMetrics:
             retries=3,
             max_repetitions=10,
         ) as snmp:
+            start_time = time.time()
             results = await snmp.get(".1.3.6.1.4.1.23695.200.1.12.1.1.1.5.0")
+            end_time = time.time()
             for res in results:
-                print(res.oid, res.value)
+                duration = start_time - end_time
+                print(f"SINR: {res.value}dB. Process took {duration} Seconds.")
     
     async def process_data(self):
         data = await self.fetch_snmp_data(self.host, 'public', self.oid_mappings)
