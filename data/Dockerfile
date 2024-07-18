@@ -1,7 +1,7 @@
 # Use the official lightweight Python image
 FROM python:3.11-slim
 
-# Install required dependencies
+# Install required dependencies/Including Rust Wheel builder
 RUN apt-get update && \
     apt-get install -y gcc g++ make curl && \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \

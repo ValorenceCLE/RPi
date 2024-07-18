@@ -32,31 +32,18 @@ class CellularMetrics:
         self.model = data["Router"]["Model"]
         self.oid_mappings = OID_MAPPINGS[self.model]
         
-    async def fetch_snmp_data(self, host, community):
-        # """Fetch SNMP data asynchronously using aiosnmp"""
-        # oids = [oid for oid in oid_mappings.values()]
-        # results = {}
-        # async with aiosnmp.Snmp(host=host, community=community, port=161, timeout=5, retries=3, max_repetitions=10) as snmp:
-        #     response = await snmp.get(oids)
-        #     for varbind in response:
-        #         for key, oid in oid_mappings.items():
-        #             if varbind.oid == oid:
-        #                 results[key] = varbind.value
-        # return results
-        async with aiosnmp.Snmp(
-            host=host,
-            port=161,
-            community=community,
-            timeout=5,
-            retries=3,
-            max_repetitions=10,
-        ) as snmp:
-            start_time = time.time()
-            results = await snmp.get(".1.3.6.1.4.1.23695.200.1.12.1.1.1.5.0")
-            end_time = time.time()
-            for res in results:
-                duration = start_time - end_time
-                print(f"SINR: {res.value}dB. Process took {duration} Seconds.")
+    async def fetch_snmp_data(self, host, community, oid_mappings):
+        """Fetch SNMP data asynchronously using aiosnmp"""
+        oids = [oid for oid in oid_mappings.values()]
+        results = {}
+        async with aiosnmp.Snmp(host=host, community=community, port=161, timeout=5, retries=3, max_repetitions=10) as snmp:
+            response = await snmp.get(oids)
+            for varbind in response:
+                for key, oid in oid_mappings.items():
+                    if varbind.oid == oid:
+                        results[key] = varbind.value
+                        print(f"SNMP results: {results}")
+        return results
     
     async def process_data(self):
         data = await self.fetch_snmp_data(self.host, 'public', self.oid_mappings)
@@ -78,7 +65,7 @@ class CellularMetrics:
             "rsrq": rsrq
         }
         await self.redis.xadd('cellular_data', data)
-        print(data)
+        print(f"Redis Data: {data}")
         
     def ensure_float(self, value):
         try:
@@ -88,7 +75,8 @@ class CellularMetrics:
         
     async def cell_run(self):
         for i in range(10):
-            await self.fetch_snmp_data(self.host, "public")
+            await self.process_data()
+            asyncio.sleep(30)
             
     def __del__(self):
         self.redis.close()
