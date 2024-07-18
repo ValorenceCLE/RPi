@@ -30,7 +30,10 @@ class StreamReader:
     async def read_streams(self):
         now = datetime.utcnow()
         three_minutes_ago = now - timedelta(minutes=3)
-        streams = {self.cell_stream: three_minutes_ago.isoformat(), self.net_stream: three_minutes_ago.isoformat()}
+        three_minutes_ago_ms = int(three_minutes_ago.timestamp() * 1000)
+        now_ms = int(now.timestamp() * 1000)
+        
+        streams = {self.cell_stream: str(three_minutes_ago_ms), self.net_stream: str(three_minutes_ago_ms)}
         
         try:
             response = await self.redis.xreadgroup(
