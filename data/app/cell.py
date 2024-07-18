@@ -91,7 +91,7 @@ class CellularMetrics:
     def __del__(self):
         self.redis.close()
         
-if __name__ == "__main__":
-    cell = CellularMetrics()
-    asyncio.run(cell.cell_run())
+#if __name__ == "__main__":
+    #cell = CellularMetrics()
+    #asyncio.run(cell.cell_run())
     

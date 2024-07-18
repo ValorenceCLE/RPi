@@ -58,4 +58,4 @@ async def main():
 
 if __name__ == "__main__":
     #save()
-    asyncio.get_event_loop().run_until_complete(cell.cell_run())
+    asyncio.run(cell.cell_run())
