@@ -74,9 +74,9 @@ class CellularMetrics:
             return self.null
         
     async def cell_run(self):
-        for i in range(10):
+        for i in range(3):
             await self.process_data()
-            asyncio.sleep(30)
+            await asyncio.sleep(30)
             
     def __del__(self):
         self.redis.close()
