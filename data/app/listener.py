@@ -1,10 +1,11 @@
 import asyncio
 from redis.asyncio import Redis
 from datetime import datetime, timedelta
+import os
 
 class StreamReader:
     def __init__(self):
-        self.redis_url = 'redis://localhost:6379'  # Update this as needed
+        self.redis_url = os.getenv('REDIS_URL', 'redis://redis:6379')  # Update this as needed
         self.redis = Redis.from_url(self.redis_url)
         self.cell_stream = 'cellular_data'
         self.net_stream = 'network_data'
