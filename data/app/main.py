@@ -29,33 +29,18 @@ from net import NetworkPing
 from cell import CellularMetrics
 #from system_info import save
 
-env = AHT10()
-cp = INA260Camera()
-rp = INA260Router()
-net = NetworkPing()
-cell = CellularMetrics()
-
-async def run_synchronous_task(task_func):
-    """Run a synchronous task in a separate thread."""
-    await asyncio.to_thread(task_func)
-
 async def main():
-    # Run the asynchronous network ping test
-    async_tasks = [
-        net.net_run(),
-        cell.cell_run()
+    net = NetworkPing()
+    cell = CellularMetrics()
+    
+    
+    tasks = [
+        asyncio.create_task(net.net_run()),
+        asyncio.create_task(cell.cell_run()),
     ]
-
-    # Run the synchronous tasks using asyncio.to_thread
-    sync_tasks = [
-        run_synchronous_task(rp.rp_run),
-        run_synchronous_task(cp.cp_run),
-        run_synchronous_task(env.env_run),
-    ]
-
-    # Combine both async and sync tasks
-    await asyncio.gather(*async_tasks, *sync_tasks)
-
-if __name__ == "__main__":
-    #save()
-    asyncio.run(cell.cell_run())
+    
+    await asyncio.gather(*tasks)
+    
+    
+if __name__ == '__main__':
+    asyncio.run(main())
