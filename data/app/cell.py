@@ -89,7 +89,6 @@ class CellularMetrics:
     async def cell_run(self):
         for i in range(10):
             await self.fetch_snmp_data(self.host, "public")
-            await asyncio.sleep(self.collection_interval)
             
     def __del__(self):
         self.redis.close()
