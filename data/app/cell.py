@@ -4,7 +4,6 @@ from datetime import datetime
 import asyncio
 from redis.asyncio import Redis
 import aiosnmp
-import time
 # OID mappings for different router models
 OID_MAPPINGS = {
     "Peplink MAX BR1 Mini": {
@@ -42,7 +41,7 @@ class CellularMetrics:
                 for key, oid in oid_mappings.items():
                     if varbind.oid == oid:
                         results[key] = varbind.value
-                        print(f"SNMP results: {results}")
+        print(f"SNMP results: {results}")
         return results
     
     async def process_data(self):
@@ -64,8 +63,9 @@ class CellularMetrics:
             "rsrp": rsrp,
             "rsrq": rsrq
         }
-        await self.redis.xadd('cellular_data', data)
         print(f"Redis Data: {data}")
+        await self.redis.xadd('cellular_data', data)
+        
         
     def ensure_float(self, value):
         try:
