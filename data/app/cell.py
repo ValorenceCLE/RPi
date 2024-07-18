@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 import asyncio
 from redis.asyncio import Redis
-from aiosnmp import Snmp
+import aiosnmp
 
 # OID mappings for different router models
 OID_MAPPINGS = {
@@ -36,7 +36,7 @@ class CellularMetrics:
         """Fetch SNMP data asynchronously using aiosnmp"""
         oids = [oid for oid in oid_mappings.values()]
         results = {}
-        async with Snmp(host=host, community=community, port=161, timeout=5, retries=3) as snmp:
+        async with aiosnmp.Snmp(host=host, community=community, port=161, timeout=5, retries=3, max_repetitions=10) as snmp:
             response = await snmp.get(oids)
             for varbind in response:
                 for key, oid in oid_mappings.items():
