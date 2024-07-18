@@ -32,12 +32,11 @@ class CellularMetrics:
         self.model = data["Router"]["Model"]
         self.oid_mappings = OID_MAPPINGS[self.model]
         
-        
     async def fetch_snmp_data(self, host, community, oid_mappings):
         """Fetch SNMP data asynchronously using aiosnmp"""
         oids = [oid for oid in oid_mappings.values()]
         results = {}
-        async with Snmp(host, community) as snmp:
+        async with Snmp(host=host, community=community, port=161, timeout=5, retries=3) as snmp:
             response = await snmp.get(oids)
             for varbind in response:
                 for key, oid in oid_mappings.items():
@@ -84,4 +83,3 @@ class CellularMetrics:
 if __name__ == "__main__":
     cell = CellularMetrics()
     asyncio.run(cell.cell_run())
-                        
