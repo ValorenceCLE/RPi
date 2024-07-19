@@ -1,3 +1,4 @@
+#THIS ENTIRE SCRIPT IS BROKEN SINCE WE CHANGED SNMP
 import json
 import os
 from pysnmp.hlapi import *
