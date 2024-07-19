@@ -27,8 +27,8 @@ class StreamReader:
                 print(f"Group {self.group_name} already exists for {self.net_stream}")
 
     async def read_streams(self):
-        streams = {self.cell_stream: '0', self.net_stream: '0'}
-        
+        #streams = {self.cell_stream: '0', self.net_stream: '0'}
+        streams = {self.net_stream: '0'}
         try:
             response = await self.redis.xreadgroup(
                 groupname=self.group_name, 
