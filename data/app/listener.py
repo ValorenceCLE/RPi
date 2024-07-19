@@ -1,6 +1,5 @@
 import asyncio
 from redis.asyncio import Redis
-from datetime import datetime, timedelta
 import os
 
 class StreamReader:
@@ -12,7 +11,7 @@ class StreamReader:
         self.group_name = 'data_group'
         self.consumer_name = 'consumer_1'
         self.collection_interval = 180  # 3 minutes
-    
+
     async def setup_groups(self):
         # Ensure the consumer group exists for both streams
         try:
@@ -28,19 +27,14 @@ class StreamReader:
                 print(f"Group {self.group_name} already exists for {self.net_stream}")
 
     async def read_streams(self):
-        now = datetime.utcnow()
-        three_minutes_ago = now - timedelta(minutes=3)
-        three_minutes_ago_ms = int(three_minutes_ago.timestamp() * 1000)
-        now_ms = int(now.timestamp() * 1000)
-        
-        streams = {self.cell_stream: str(three_minutes_ago_ms), self.net_stream: str(three_minutes_ago_ms)}
+        streams = {self.cell_stream: '0', self.net_stream: '0'}
         
         try:
             response = await self.redis.xreadgroup(
                 groupname=self.group_name, 
                 consumername=self.consumer_name, 
                 streams=streams, 
-                count=100,  # Adjust count as needed
+                count=6,  # Fetch the last 6 entries
                 block=5000
             )
             for stream_name, messages in response:
