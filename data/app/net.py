@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 import asyncio
 import aioping # type: ignore
-from redis.asyncio import Redis
+from redis.asyncio import Redis #type: ignore
 
 class NetworkPing:
     def __init__(self, target_ip='8.8.8.8'):

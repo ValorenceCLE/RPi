@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 import asyncio
 from redis.asyncio import Redis #type: ignore
-import aiosnmp
+import aiosnmp #type: ignore
 # OID mappings for different router models
 OID_MAPPINGS = {
     "Peplink MAX BR1 Mini": {

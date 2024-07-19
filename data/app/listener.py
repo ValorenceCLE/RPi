@@ -1,5 +1,5 @@
 import asyncio
-from redis.asyncio import Redis
+from redis.asyncio import Redis #type: ignore
 import os
 
 class StreamReader:
