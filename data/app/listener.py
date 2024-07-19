@@ -13,7 +13,7 @@ class SaveData:
         self.org = os.getenv('DOCKER_INFLUXDB_INIT_ORG')
         self.bucket = os.getenv('DOCKER_INFLUXDB_INIT_BUCKET')
         self.url = os.getenv('INFLUXDB_URL')
-        print(f"Connecting to InfluxDB at {self.influxdb_url}")
+        print(f"Connecting to InfluxDB at {self.url}")
         self.client = InfluxDBClient(url=self.url, token=self.token, org=self.org)
         self.write_api = self.client.write_api(write_options=WriteOptions(write_type=ASYNCHRONOUS, batch_size=100, flush_interval=10_000))
         self.redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
