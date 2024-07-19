@@ -52,11 +52,11 @@ class StreamReader:
         await self.setup_groups()
         print("Group Function Called: Point 1")
         while True:
-            now = datetime.utcnow().isoformat()
+            now = datetime.utcnow()
             print(f"Starting Listener: Point 2\n{now}")
             await self.read_streams()
-            later = datetime.utcnow().isoformat()
-            duration = later - now
+            later = datetime.utcnow()
+            duration = (later - now).total_seconds()
             print(f"Finished listening. Took {duration} Seconds\n\nBeginning Sleep Cycle: Point 3")
             await asyncio.sleep(self.collection_interval)
 
