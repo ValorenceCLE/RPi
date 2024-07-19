@@ -36,7 +36,7 @@ async def main():
     
     tasks = [
         asyncio.create_task(net.net_run()),
-        asyncio.create_task(cell.cell_run()),
+        #asyncio.create_task(cell.cell_run()),
     ]
     
     await asyncio.gather(*tasks)

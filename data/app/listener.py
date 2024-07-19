@@ -6,7 +6,7 @@ class StreamReader:
     def __init__(self):
         self.redis_url = os.getenv('REDIS_URL', 'redis://redis:6379')
         self.redis = Redis.from_url(self.redis_url)
-        self.cell_stream = 'cellular_data'
+        #self.cell_stream = 'cellular_data'
         self.net_stream = 'network_data'
         self.group_name = 'data_group'
         self.consumer_name = 'consumer_1'
@@ -14,11 +14,11 @@ class StreamReader:
 
     async def setup_groups(self):
         # Ensure the consumer group exists for both streams
-        try:
-            await self.redis.xgroup_create(self.cell_stream, self.group_name, id='0', mkstream=True)
-        except Exception as e:
-            if "BUSYGROUP" in str(e):
-                print(f"Group {self.group_name} already exists for {self.cell_stream}")
+        #try:
+            #await self.redis.xgroup_create(self.cell_stream, self.group_name, id='0', mkstream=True)
+        #except Exception as e:
+            #if "BUSYGROUP" in str(e):
+                #print(f"Group {self.group_name} already exists for {self.cell_stream}")
 
         try:
             await self.redis.xgroup_create(self.net_stream, self.group_name, id='0', mkstream=True)
