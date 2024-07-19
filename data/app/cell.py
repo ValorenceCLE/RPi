@@ -2,7 +2,7 @@ import os
 import json
 from datetime import datetime
 import asyncio
-from redis.asyncio import Redis
+from redis.asyncio import Redis #type: ignore
 import aiosnmp
 # OID mappings for different router models
 OID_MAPPINGS = {
