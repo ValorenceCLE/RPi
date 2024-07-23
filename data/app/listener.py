@@ -96,6 +96,6 @@ class SaveData:
             await asyncio.sleep(self.collection_interval)
 
 if __name__ == "__main__":
-    streams = ['network_data']
+    streams = ['network_data', 'camera_data']
     reader = SaveData(streams)
     asyncio.run(reader.process_streams())
