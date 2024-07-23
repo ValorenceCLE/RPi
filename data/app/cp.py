@@ -14,8 +14,6 @@ class INA260Camera:
         self.redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
         self.redis = Redis.from_url(self.redis_url)
         self.collection_interval = 30  # Interval in seconds between data collections
-        self.save_interval = 5
-        self.counter = 0
         self.SYSTEM_INFO_PATH = '/app/device_info/system_info.json'
         with open(self.SYSTEM_INFO_PATH, 'r') as file:
             data = json.load(file)
