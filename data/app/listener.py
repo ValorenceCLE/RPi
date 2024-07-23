@@ -2,7 +2,7 @@ import asyncio
 from redis.asyncio import Redis  # type: ignore
 import os
 from datetime import datetime
-from influxdb_client import InfluxDBClient, Point  # type: ignore
+from influxdb_client import InfluxDBClient, Point, WritePrecision  # type: ignore
 from influxdb_client.client.write_api import ASYNCHRONOUS, WriteOptions  # type: ignore
 
 class SaveData:
@@ -66,11 +66,13 @@ class SaveData:
                 timestamp = message[b'timestamp'].decode() if b'timestamp' in message else datetime.utcnow().isoformat()
                 data = {}
                 for key, value in message.items():
-                    if key != b'timestamp':
-                        key = key.decode()
-                        value = float(value.decode())
-                        data[key] = value
-                point = Point(stream_name.decode()).time(datetime.fromisoformat(timestamp)).field('value', data)
+                    key = key.decode()
+                    value = float(value.decode()) if key != 'timestamp' else value.decode()
+                    data[key] = value
+                point = Point(stream_name.decode()).tag("source", stream_name.decode()).time(datetime.fromisoformat(timestamp))
+                for key, value in data.items():
+                    if key != 'timestamp':
+                        point = point.field(key, value)
                 points.append(point)
                 print(f"Created point: {point}")
             except Exception as e:
