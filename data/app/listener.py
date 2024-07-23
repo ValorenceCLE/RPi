@@ -35,7 +35,7 @@ class SaveData:
                     print(f"Group {self.group_name} already exists for {stream}")
     
     async def read_streams(self):
-        streams = {stream: '0' for stream in self.streams}
+        streams = {stream: '>' for stream in self.streams}
         try:
             response = await self.redis.xreadgroup(
                 groupname=self.group_name,
@@ -64,7 +64,12 @@ class SaveData:
             print(f"Processing message {message_id} from stream {stream_name}: {message}")
             try:
                 timestamp = message[b'timestamp'].decode() if b'timestamp' in message else datetime.utcnow().isoformat()
-                data = {key.decode(): float(value.decode()) for key, value in message.items() if key != b'timestamp'}
+                data = {}
+                for key, value in message.items():
+                    if key != b'timestamp':
+                        key = key.decode()
+                        value = float(value.decode())
+                        data[key] = value
                 point = Point(stream_name).time(datetime.fromisoformat(timestamp)).fields(data)
                 points.append(point)
                 print(f"Created point: {point}")
