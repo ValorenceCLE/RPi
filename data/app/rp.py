@@ -8,7 +8,7 @@ import adafruit_ina260 # type: ignore
 class INA260Router:
     def __init__(self):
         i2c = board.I2C()
-        self.ina260 = adafruit_ina260.INA260(i2c, address=0x40)
+        self.ina260 = adafruit_ina260.INA260(i2c, address=0x41)
         self.redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
         self.redis = Redis.from_url(self.redis_url)
         self.collection_interval = 30 #30 second collection interval
