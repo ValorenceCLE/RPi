@@ -44,14 +44,14 @@ class NetworkPing:
         }
         await self.redis.xadd('network_data', data)
         
-    async def net_run(self):
+    async def run(self):
         while True:
             await self.run_ping_test()
             await asyncio.sleep(self.collection_interval)
             
 if __name__ == "__main__":
     np = NetworkPing()
-    asyncio.run(np.net_run())
+    asyncio.run(np.run())
 
         
 
