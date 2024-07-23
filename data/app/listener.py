@@ -8,10 +8,10 @@ class StreamToInfluxDB:
     def __init__(self):
         print("Initializing StreamToInfluxDB class...")
         self.redis_url = os.getenv('REDIS_URL', 'redis://redis:6379')
-        self.influxdb_url = os.getenv('INFLUXDB_URL', 'http://influxdb:8086')
-        self.influxdb_token = os.getenv('INFLUXDB_TOKEN', 'your-token')
-        self.influxdb_org = os.getenv('INFLUXDB_ORG', 'your-org')
-        self.influxdb_bucket = os.getenv('INFLUXDB_BUCKET', 'your-bucket')
+        self.influxdb_url = os.getenv('INFLUXDB_URL')
+        self.influxdb_token = os.getenv('DOCKER_INFLUXDB_INIT_ADMIN_TOKEN')
+        self.influxdb_org = os.getenv('DOCKER_INFLUXDB_INIT_ORG')
+        self.influxdb_bucket = os.getenv('DOCKER_INFLUXDB_INIT_BUCKET')
         
         print(f"Connecting to Redis at {self.redis_url}")
         self.redis = Redis.from_url(self.redis_url)
