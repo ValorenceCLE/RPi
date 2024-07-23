@@ -27,7 +27,6 @@ from rp import INA260Router
 from env import AHT10
 from net import NetworkPing
 from cell import CellularMetrics
-from sp import INA260System
 #from system_info import save
 
 async def main():
@@ -35,7 +34,6 @@ async def main():
     cell = CellularMetrics()
     cp = INA260Camera()
     rp = INA260Router()
-    sp = INA260System()
     
     
     tasks = [
