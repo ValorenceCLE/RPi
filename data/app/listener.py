@@ -26,21 +26,25 @@ class SaveData:
     async def setup_groups(self):
         for stream in self.streams:
             try:
-                await self.redis.xgroup_create(stream, self.group_name, id='0',mkstream=True)
+                await self.redis.xgroup_create(stream, self.group_name, id='0', mkstream=True)
+                print(f"Group {self.group_name} created for {stream}")
             except Exception as e:
                 if "BUSYGROUP" not in str(e):
                     print(f"Error creating group {self.group_name} for {stream}: {e}")
+                else:
+                    print(f"Group {self.group_name} already exists for {stream}")
     
     async def read_streams(self):
-        streams = {stream: '>' for stream in self.streams}
+        streams = {stream: '0' for stream in self.streams}
         try:
             response = await self.redis.xreadgroup(
                 groupname=self.group_name,
                 consumername=self.consumer_name,
                 streams=streams,
                 count=10,
-                block=1000 
+                block=1000
             )
+            print(f"Read response: {response}")
             return response
         except Exception as e:
             print(f"Error reading from streams: {e}")
@@ -48,27 +52,40 @@ class SaveData:
     
     async def write_to_influxdb(self, points):
         try:
-            self.write_api.write(bucket=self.influxdb_bucket, org=self.influxdb_org, record=points)
+            print(f"Writing points: {points}")
+            self.write_api.write(bucket=self.bucket, org=self.org, record=points)
+            print("Write to InfluxDB successful")
         except Exception as e:
-            print(f"Error writting to InfluxDB: {e}")
+            print(f"Error writing to InfluxDB: {e}")
             
     def create_points(self, stream_name, messages):
-        points =[]
+        points = []
         for message_id, message in messages:
-            timestamp = message.get('timestamp', datetime.utcnow().isoformat())
-            data = {key: float(value) for key, value in message.items() if key != 'timestamp'}
-            point = Point(stream_name).time(datetime.fromisoformat(timestamp)).fields(data)
-            points.append(point)
+            print(f"Processing message {message_id} from stream {stream_name}: {message}")
+            try:
+                timestamp = message[b'timestamp'].decode() if b'timestamp' in message else datetime.utcnow().isoformat()
+                data = {key.decode(): float(value.decode()) for key, value in message.items() if key != b'timestamp'}
+                point = Point(stream_name).time(datetime.fromisoformat(timestamp)).fields(data)
+                points.append(point)
+                print(f"Created point: {point}")
+            except Exception as e:
+                print(f"Error processing message {message_id}: {e}")
         return points
     
     async def process_streams(self):
         await self.setup_groups()
         while True:
+            now = datetime.utcnow()
+            print(f"Starting a new iteration at {now}")
             response = await self.read_streams()
             if response:
                 for stream_name, messages in response:
                     points = self.create_points(stream_name, messages)
-                    await self.write_to_influxdb(points)
+                    if points:
+                        await self.write_to_influxdb(points)
+            later = datetime.utcnow()
+            duration = (later - now).total_seconds()
+            print(f"Finished processing. Duration: {duration} seconds. Sleeping for {self.collection_interval} seconds.")
             await asyncio.sleep(self.collection_interval)
             
             
