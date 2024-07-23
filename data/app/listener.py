@@ -2,7 +2,7 @@ import asyncio
 from redis.asyncio import Redis  # type: ignore
 import os
 from datetime import datetime, timedelta
-from influxdb_client import InfluxDBClient, Point, WriteOptions
+from influxdb_client import InfluxDBClient, Point, WriteOptions # type: ignore
 
 class StreamToInfluxDB:
     def __init__(self):
