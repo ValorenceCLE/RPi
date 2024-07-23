@@ -1,9 +1,9 @@
 import asyncio
-from redis.asyncio import Redis #type: ignore
+from redis.asyncio import Redis  # type: ignore
 import os
 from datetime import datetime
-from influxdb_client import InfluxDBClient, Point # type: ignore
-from influxdb_client.client.write_api import ASYNCHRONOUS, WriteOptions # type: ignore
+from influxdb_client import InfluxDBClient, Point  # type: ignore
+from influxdb_client.client.write_api import ASYNCHRONOUS, WriteOptions  # type: ignore
 
 class SaveData:
     def __init__(self, streams):
@@ -22,7 +22,7 @@ class SaveData:
         self.consumer_name = 'influxdb'
         self.collection_interval = 30  # Pull data every 30 seconds
         self.streams = streams
-        
+
     async def setup_groups(self):
         for stream in self.streams:
             try:
@@ -33,7 +33,7 @@ class SaveData:
                     print(f"Error creating group {self.group_name} for {stream}: {e}")
                 else:
                     print(f"Group {self.group_name} already exists for {stream}")
-    
+
     async def read_streams(self):
         streams = {stream: '>' for stream in self.streams}
         try:
@@ -49,7 +49,7 @@ class SaveData:
         except Exception as e:
             print(f"Error reading from streams: {e}")
             return []
-    
+
     async def write_to_influxdb(self, points):
         try:
             print(f"Writing points: {points}")
@@ -57,7 +57,7 @@ class SaveData:
             print("Write to InfluxDB successful")
         except Exception as e:
             print(f"Error writing to InfluxDB: {e}")
-            
+
     def create_points(self, stream_name, messages):
         points = []
         for message_id, message in messages:
@@ -70,13 +70,13 @@ class SaveData:
                         key = key.decode()
                         value = float(value.decode())
                         data[key] = value
-                point = Point(stream_name).time(datetime.fromisoformat(timestamp)).fields(data)
+                point = Point(stream_name.decode()).time(datetime.fromisoformat(timestamp)).field('value', data)
                 points.append(point)
                 print(f"Created point: {point}")
             except Exception as e:
                 print(f"Error processing message {message_id}: {e}")
         return points
-    
+
     async def process_streams(self):
         await self.setup_groups()
         while True:
@@ -92,8 +92,7 @@ class SaveData:
             duration = (later - now).total_seconds()
             print(f"Finished processing. Duration: {duration} seconds. Sleeping for {self.collection_interval} seconds.")
             await asyncio.sleep(self.collection_interval)
-            
-            
+
 if __name__ == "__main__":
     streams = ['network_data']
     reader = SaveData(streams)
