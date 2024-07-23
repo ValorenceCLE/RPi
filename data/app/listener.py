@@ -2,7 +2,7 @@ import asyncio
 from redis.asyncio import Redis #type: ignore
 import os
 from datetime import datetime
-from influxdb_client import InfluxDBClient, Point, WritePrecision # type: ignore
+from influxdb_client import InfluxDBClient, Point # type: ignore
 from influxdb_client.client.write_api import ASYNCHRONOUS, WriteOptions # type: ignore
 
 
@@ -39,7 +39,7 @@ class SaveData:
     
     async def read_streams(self, streams):
         print("Reading Streams...")
-        streams = {stream: '>' for stream in streams}
+        streams = {stream: '0' for stream in streams}
         try:
             print(f"Reading from streams: {streams}")
             response = await self.redis.xreadgroup(
