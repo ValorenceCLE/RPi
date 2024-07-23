@@ -28,10 +28,10 @@ class INA260System:
         watts = await self.get_watts()
         amps = await self.get_amps()
         data = {
-            "timestamp", timestamp,
-            "volts", volts,
-            "watts", watts,
-            "amps", amps
+            "timestamp": timestamp,
+            "volts": volts,
+            "watts": watts,
+            "amps": amps
         }
         await self.redis.xadd('system_data', data)
         
