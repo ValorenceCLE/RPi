@@ -1,5 +1,4 @@
 import os
-import time
 import asyncio
 import json
 from datetime import datetime
@@ -14,11 +13,6 @@ class INA260Camera:
         self.redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
         self.redis = Redis.from_url(self.redis_url)
         self.collection_interval = 30  # Interval in seconds between data collections
-        self.SYSTEM_INFO_PATH = '/app/device_info/system_info.json'
-        with open(self.SYSTEM_INFO_PATH, 'r') as file:
-            data = json.load(file)
-        self.serial = data["Camera"]["Serial_Number"]
-        self.sensor_id = data["Camera"]["Sensor_ID"]
         
     async def get_amps(self):
         return await asyncio.to_thread(lambda: round(self.ina260.current / 1000, 1))
@@ -46,7 +40,6 @@ class INA260Camera:
         while True:
             await self.stream_data()
             await asyncio.sleep(self.collection_interval)
-            
             
 if __name__ == "__main__":
     cp = INA260Camera()
