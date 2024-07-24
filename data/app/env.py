@@ -31,7 +31,7 @@ class AHT10:
        #await asyncio.sleep(0.05)
        return await asyncio.to_thread(self.bus.read_i2c_block_data(self.address, 0x00, 6))
    
-    async def stream_data(self, temperature, humidity):
+    async def stream_data(self):
        timestamp = datetime.utcnow().isoformat()
        temperature = await self.read_temperature()
        humidity = await self.read_humidity()
