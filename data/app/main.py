@@ -31,15 +31,17 @@ from cell import CellularMetrics
 
 async def main():
     net = NetworkPing()
-    cell = CellularMetrics()
+    #cell = CellularMetrics()
     cp = INA260Camera()
     rp = INA260Router()
+    env = AHT10()
     
     
     tasks = [
         asyncio.create_task(net.run()),
         asyncio.create_task(cp.run()),
         asyncio.create_task(rp.run()),
+        asyncio.create_task(env.run()),
         #asyncio.create_task(cell.cell_run()),
     ]
     
