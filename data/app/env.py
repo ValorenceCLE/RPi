@@ -1,11 +1,7 @@
-#Temperature/Humidity
-#Naming Convention: Rpi Serial Number - Sensor Name
-#i.e: 10000000357d707e-AHT10
-import time
 import asyncio
 import smbus2
 import os
-from redis.asyncio import Redis
+from redis.asyncio import Redis #type: ignore
 from datetime import datetime
 
 class AHT10:
@@ -48,7 +44,7 @@ class AHT10:
        
     async def run(self):
         while True:
-            await self.run()
+            await self.stream_data()
             await asyncio.sleep(self.collection_interval)
             
 if __name__ == "__main__":

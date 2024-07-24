@@ -1,6 +1,5 @@
 import os
 import asyncio
-import json
 from datetime import datetime
 from redis.asyncio import Redis # type: ignore
 import board # type: ignore
