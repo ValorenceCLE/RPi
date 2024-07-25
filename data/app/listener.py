@@ -20,7 +20,7 @@ class SaveData:
         self.redis = Redis.from_url(self.redis_url)
         self.group_name = 'data_group'
         self.consumer_name = 'influxdb'
-        self.collection_interval = 30  # Pull data every 30 seconds
+        self.collection_interval = 300  # Pull data every 5 minutes
         self.streams = streams
 
     async def setup_groups(self):

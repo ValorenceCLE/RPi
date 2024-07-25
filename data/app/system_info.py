@@ -1,15 +1,14 @@
-#THIS ENTIRE SCRIPT IS BROKEN SINCE WE CHANGED SNMP
 import json
-import os
-from pysnmp.hlapi import *
-import logging
+import asyncio
+import aiosnmp # type: ignore
+import aiofiles # type: ignore
 
 MODEL_OID = '.1.3.6.1.2.1.1.1.0'
-RETRIES = 3
-COMMUNITY_STRING = 'public'
-SYSTEM_INFO_PATH = '/app/device_info/system_info.json'
+SYSTEM_NAME = '.1.3.6.1.2.1.1.5.0'
+COMMUNITY = 'public'
+PATH = '/app/device_info/system_info.json'
 
-SNMP_TARGETS = {
+TARGETS = {
     'Router': {
         'ip': '192.168.1.1',
         'model_oid': MODEL_OID,
@@ -24,52 +23,46 @@ SNMP_TARGETS = {
         'serial_oid': '.1.3.6.1.2.1.2.2.1.6.2'
     }
 }
-logging.basicConfig(level=logging.INFO)
 
-def get_snmp_data(ip_address, oid, community_string=COMMUNITY_STRING, retries=RETRIES):
-    """Fetch SNMP data using retries for fault tolerance."""
-    for attempt in range(retries):
-        error_indication, error_status, error_index, var_binds = next(
-            getCmd(SnmpEngine(),
-                   CommunityData(community_string, mpModel=1),
-                   UdpTransportTarget((ip_address, 161), timeout=1, retries=5),
-                   ContextData(),
-                   ObjectType(ObjectIdentity(oid)))
-        )
-        if not error_indication and not error_status:
-            return var_binds[0][1].prettyPrint()
-        logging.warning(f"SNMP attempt {attempt + 1} failed: {error_indication or error_status}")
-    return None
-
-def get_rpi_serial():
+async def get_snmp_data(host, oid, community=COMMUNITY):
     try:
-        with open('/proc/cpuinfo', 'r') as f:
-            for line in f:
-                if line.startswith('Serial'):
-                    return line.split(':')[-1].strip().upper()
-    except IOError:
-        logging.error('Could not read /proc/cpuinfo.')
+        async with aiosnmp.Snmp(host=host, community=community, port=161, timeout=5, max_repetitions=5) as snmp:
+            response = await snmp.get(oid)
+            for varbind in response:
+                if varbind.oid == oid:
+                    return varbind.value
+    except Exception as e:
+        print(f"SNMP request failed: {e}")
         return None
     
-def update_rpi_info():
-    """Collect the Raspberry Pi information."""
-    serial_number = get_rpi_serial()
+async def rpi_serial():
+    try:
+        async with aiofiles.open('/proc/cpuinfo', 'r') as f:
+            async for line in f:
+                if line.startswith('Serial'):
+                    return line.split(':')[-1].strip().upper()
+    except IOError as e:
+        print(f"Failed to get RPi Serial Number: {e}")
+        return None
+
+async def update_rpi_info():
+    serial_number = await rpi_serial()
     return {
         'Serial_Number': serial_number,
-        'System_Name': "R&D Test System",
+        'System_Name': 'R&D Test System',
         'Sensor_ID': serial_number + '-AHT10' if serial_number else None
     }
-    
-def get_device_info(device_name):
-    device = SNMP_TARGETS[device_name]
-    model = get_snmp_data(device['ip'], device['model_oid'])
+
+async def get_device_info(device_name):
+    device = TARGETS[device_name]
+    model = await get_snmp_data(device['ip'], device['model_oid'])
     serial = None
     if device_name == 'Router' and model:
         serial_oid = device['serial_oids'].get(model)
         if serial_oid:
-            serial = get_snmp_data(device['ip'], serial_oid)
+            serial = await get_snmp_data(device['ip'], serial_oid)
     elif device_name == 'Camera':
-        serial = get_snmp_data(device['ip'], device['serial_oid'])
+        serial = await get_snmp_data(device['ip'], device['serial_oid'])
         if serial:
             serial = serial.split('0x')[1].strip().upper()
         if model:
@@ -83,14 +76,15 @@ def get_device_info(device_name):
         }
     return None
 
-def save(file_path=SYSTEM_INFO_PATH):
+async def save(path=PATH):
     system_info = {
-        'RPi': update_rpi_info(),
-        'Router': get_device_info('Router'),
-        'Camera': get_device_info('Camera')
+        'RPi': await update_rpi_info(),
+        'Router': await get_device_info('Router'),
+        'Camera': await get_device_info('Camera')
     }
-    with open(file_path, 'w') as json_file:
-        json.dump(system_info, json_file, indent=4)
+    async with aiofiles.open(path, 'w') as file:
+        await json.dump(system_info, file, indent=4)
         
-#Use this file to handle getting Uptime and any other possible SNMP requests for the Front-End Web App.
-#Use FastAPI to create a REST API that can be called to quickly get needed info and keeping the load off of the Web App
+if __name__ == "__main__":
+    asyncio.run(save())
+                 
