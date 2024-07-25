@@ -4,7 +4,7 @@ from rp import INA260Router
 #from sp import INA260System
 from env import AHT10
 from net import NetworkPing
-from cell import CellularMetrics
+#from cell import CellularMetrics
 from system_info import save
 
 async def main():
@@ -17,6 +17,7 @@ async def main():
     
     
     tasks = [
+        asyncio.create_task(save()),
         asyncio.create_task(net.run()),
         asyncio.create_task(cp.run()),
         asyncio.create_task(rp.run()),
@@ -29,6 +30,4 @@ async def main():
     
     
 if __name__ == '__main__':
-    asyncio.run(save())
-    asyncio.sleep(3)
     asyncio.run(main())
