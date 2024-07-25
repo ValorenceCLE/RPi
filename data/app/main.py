@@ -29,6 +29,6 @@ async def main():
     
     
 if __name__ == '__main__':
-    save()
+    asyncio.run(save())
     asyncio.sleep(3)
     asyncio.run(main())
