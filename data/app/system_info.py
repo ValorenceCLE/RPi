@@ -83,8 +83,7 @@ async def save(path=PATH):
         'Camera': await get_device_info('Camera')
     }
     async with aiofiles.open(path, 'w') as file:
-        await json.dump(system_info, file, indent=4)
+        await file.write(json.dumps(system_info, indent=4))
         
 if __name__ == "__main__":
     asyncio.run(save())
-                 
