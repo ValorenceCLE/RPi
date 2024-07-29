@@ -15,8 +15,9 @@ async def main():
     rp = INA260Router()
     #sp = INA260System()
     env = AHT10()
-    prc = Processor() #Saves Data to InfluxDB 
     streams = ['network_data', 'camera_data', 'router_data', 'environment_data'] #List the Streams that need to be listened too, pass var to the Processor
+    prc = Processor(streams) #Saves Data to InfluxDB 
+    
     
     tasks = [
         #asyncio.create_task(start_up()),
@@ -26,7 +27,7 @@ async def main():
         #asyncio.create_task(sp.run()), #Currently No Sensor Connected
         asyncio.create_task(env.run()),
         #asyncio.create_task(cell.cell_run()), #Currently No SIM
-        asyncio.create_task(prc.process_streams(streams))
+        asyncio.create_task(prc.process_streams())
     ]
     
     await asyncio.gather(*tasks)
