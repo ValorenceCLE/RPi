@@ -5,7 +5,7 @@ from datetime import datetime
 from influxdb_client import InfluxDBClient, Point, WritePrecision  # type: ignore
 from influxdb_client.client.write_api import ASYNCHRONOUS, WriteOptions  # type: ignore
 
-class SaveData:
+class Processor:
     def __init__(self, streams):
         print("Initializing Data Save...")
         self.token = os.getenv('DOCKER_INFLUXDB_INIT_ADMIN_TOKEN')
@@ -97,5 +97,5 @@ class SaveData:
 
 if __name__ == "__main__":
     streams = ['network_data', 'camera_data', 'router_data', 'environment_data']
-    reader = SaveData(streams)
+    reader = Processor(streams)
     asyncio.run(reader.process_streams())

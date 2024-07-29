@@ -76,7 +76,7 @@ async def get_device_info(device_name):
         }
     return None
 
-async def save(path=PATH):
+async def start_up(path=PATH):
     system_info = {
         'RPi': await update_rpi_info(),
         'Router': await get_device_info('Router'),
@@ -86,4 +86,4 @@ async def save(path=PATH):
         await file.write(json.dumps(system_info, indent=4))
         
 if __name__ == "__main__":
-    asyncio.run(save())
+    asyncio.run(start_up())
