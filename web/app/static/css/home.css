@@ -1,0 +1,62 @@
+.data-card {
+    background-color:  #7B7B7B;
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    padding: 10px;
+    margin: 3%;
+    transition: transform 0.3s;
+    border-width: small;
+    border-color:  #7B7B7B;
+}
+.data-card:hover {
+    transform: translateY(-5px);
+}
+.data-title {
+    font-weight: bold;
+    font-size: 1.75rem;
+    color:  white;
+    text-align: center;
+}
+.data-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: white;
+    text-align: center;
+}
+.card-header {
+    background-color: #0940BA;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+.card {
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+.btn{
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    background-color: #7B7B7B;
+    color: white;
+    font-size: 1rem;
+    font-weight: bold;
+    transition: transform 0.3s;
+}
+.btn:hover{
+    transform: translateY(-1.5px);
+    background-color: #7B7B7B;
+    color: white;
+}
+a:hover, a:focus {
+    text-decoration:underline;
+}
+a { 
+    color: white;
+    text-decoration:none;
+    font-size: 2em;
+    margin-right: 5rem;
+    font-weight: bold;
+}
+#RouterWarning {
+    cursor: not-allowed;
+}
