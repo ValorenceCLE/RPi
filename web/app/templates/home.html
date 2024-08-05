@@ -2,33 +2,44 @@
 {% block title %}Relay Control{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="static/css/home.css">
-<br>
-<div class="container mt-4">
-    <!--<h1 class="text-center mb-4">R&D Test System Metrics</h1>-->
-    <div class="row justify-content-center">
-        <div class="col-lg-3">
-            <div class="data-card">
-                <div class="data-title">Temperature</div>
-                <div class="data-value" id="temperature">*71 °F</div>
+<div class="contaner mt-5">
+    <div class="row justify-content-center m-0">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h1>Cell Signal</h1>
+                </div>
             </div>
         </div>
-        <div class="col-lg-3">
-            <div class="data-card">
-                <div class="data-title">Voltage</div>
-                <div class="data-value" id="voltage">*12.1 V</div>
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header">
+                    <center><h1 id="clock"></h1></center>
+                </div>
             </div>
         </div>
-        <div class="col-lg-3">
-            <div class="data-card">
-                <div class="data-title">Latency</div>
-                <div class="data-value" id="latency">*87 ms</div>
+    </div>
+    <div class="row justify-content-center mt-5 m-0">
+        <div class="col-8">
+            <div class="card p-3">
+                <div class="row justify-content-center m-0">
+                    <div class="col-md-4">
+                        <div id="container-volts" class="chart-container"></div>
+                    </div>
+                    <div class="col-md-4">
+                        <div id="container-watts" class="chart-container"></div>
+                    </div>
+                    <div class="col-md-4">
+                        <div id="container-amps" class="chart-container"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 <br>
 <!-- Relay Button Groups -->
-<div class="container mt-4">
+<div class="container mt-3">
     <div class="row justify-content-center">
         <div class="col-md-6">
             <div class="card">
@@ -101,4 +112,10 @@
         </div>
     </div>
 </div>
+<script src="/static/js/home.js"></script>
+<script src="/static/js/gauge.js"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/highcharts-more.js"></script>
+<script src="https://code.highcharts.com/modules/solid-gauge.js"></script>
+
 {% endblock %}

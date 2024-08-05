@@ -1,19 +1,24 @@
-#logo {
-    max-width: auto;
-    max-height: 50px;
-    margin-left: 5rem;
-}
+
 .navbar {
-    background-color: #4b4b4b;
+    background-color: #212529;
     top: 0;
 }
 .footer {
-    background-color: #4B4B4B;
+    background-color: #212529;
     position: fixed;
     bottom: 0;
-    width: 100%;
     color: white;
+    width: 100%;
 }
 .footer span {
     font-size: 1.15rem;
+}
+a { 
+    color: white;
+    text-decoration:none;
+    font-size: 2em;
+    font-weight: bold;
+}
+body {
+    overflow-x: hidden; /* Prevent horizontal overflow */
 }
