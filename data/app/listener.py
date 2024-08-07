@@ -96,6 +96,6 @@ class Processor:
             await asyncio.sleep(self.collection_interval)
 
 if __name__ == "__main__":
-    streams = ['network_data', 'camera_data', 'router_data', 'environment_data']
+    streams = ['network_data', 'camera_data', 'router_data', 'environment_data', 'cellular_data']
     reader = Processor(streams)
     asyncio.run(reader.process_streams())

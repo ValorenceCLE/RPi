@@ -15,7 +15,7 @@ async def main():
     rp = INA260Router()
     #sp = INA260System()
     env = AHT10()
-    streams = ['network_data', 'camera_data', 'router_data', 'environment_data'] #List the Streams that need to be listened too, pass var to the Processor
+    streams = ['network_data', 'camera_data', 'router_data', 'environment_data', 'cellular_data'] #List the Streams that need to be listened too, pass var to the Processor
     prc = Processor(streams) #Saves Data to InfluxDB 
     
     
