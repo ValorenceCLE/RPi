@@ -40,13 +40,13 @@ document.addEventListener('DOMContentLoaded', function () {
             title: {
                 y: -70,
                 style: {
-                    color: '#333' // Dark color for title
+                    color: '#212529' // Dark color for title
                 }
             },
             labels: {
                 y: 16,
                 style: {
-                    color: '#333' // Dark color for labels
+                    color: '#212529' // Dark color for labels
                 }
             }
         },
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     borderWidth: 0,
                     useHTML: true,
                     style: {
-                        color: '#333' // Dark color for data labels
+                        color: '#212529' // Dark color for data labels
                     }
                 }
             }
@@ -83,14 +83,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 name: 'Volts',
                 data: [Math.floor(Math.random() * 100)],
                 dataLabels: {
-                    format: '<div style="text-align:center"><span style="font-size:1rem;color:#333">{y}</span><br/><span style="font-size:0.75rem;opacity:0.4;color:#333">V</span></div>'
+                    format: '<div style="text-align:center"><span style="font-size:1.15rem;color:#333">{y}</span><br/><span style="font-size:0.75rem;opacity:0.4;color:#333">V</span></div>'
                 },
                 tooltip: {
                     valueSuffix: ' V'
                 }
             }]
         })),
-        watts: Highcharts.chart('container-watts', Highcharts.merge(gaugeOptions, {
+        watts: Highcharts.chart('container-temp', Highcharts.merge(gaugeOptions, {
             yAxis: {
                 min: 0,
                 max: 100,
@@ -102,14 +102,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 name: 'Temperature',
                 data: [Math.floor(Math.random() * 100)],
                 dataLabels: {
-                    format: '<div style="text-align:center"><span style="font-size:1rem;color:#333">{y}</span><br/><span style="font-size:0.75rem;opacity:0.4;color:#333">F</span></div>'
+                    format: '<div style="text-align:center"><span style="font-size:1.15rem;color:#333">{y}</span><br/><span style="font-size:0.75rem;opacity:0.4;color:#333">F</span></div>'
                 },
                 tooltip: {
                     valueSuffix: ' F'
                 }
             }]
         })),
-        amps: Highcharts.chart('container-amps', Highcharts.merge(gaugeOptions, {
+        amps: Highcharts.chart('container-lag', Highcharts.merge(gaugeOptions, {
             yAxis: {
                 min: 0,
                 max: 100,
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 name: 'Latency',
                 data: [Math.floor(Math.random() * 100)],
                 dataLabels: {
-                    format: '<div style="text-align:center"><span style="font-size:1rem;color:#333">{y}</span><br/><span style="font-size:0.75rem;opacity:0.4;color:#333">ms</span></div>'
+                    format: '<div style="text-align:center"><span style="font-size:1.15rem;color:#333">{y}</span><br/><span style="font-size:0.75rem;opacity:0.4;color:#333">ms</span></div>'
                 },
                 tooltip: {
                     valueSuffix: ' ms'
@@ -129,23 +129,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }]
         }))
     };
-
-    // WebSocket setup
-/*    let socket;
-    function initializeWebSocket() {
-        socket = new WebSocket('ws://your-websocket-url');
-
-        socket.onmessage = function (event) {
-            const data = JSON.parse(event.data);
-            updateGauges(data);
-        };
-
-        socket.onclose = function () {
-            console.log('WebSocket connection closed. Reconnecting in 5 seconds...');
-            setTimeout(initializeWebSocket, 5000);
-        };
-    }*/
-
     function updateGauges(data) {
         if (gauges.volts) {
             gauges.volts.series[0].points[0].update(data.volts);
