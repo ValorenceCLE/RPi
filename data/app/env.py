@@ -1,5 +1,5 @@
 import asyncio
-import smbus2
+import smbus2 # type: ignore
 import os
 from redis.asyncio import Redis  # type: ignore
 from datetime import datetime
