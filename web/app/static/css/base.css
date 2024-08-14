@@ -7,19 +7,19 @@
     background-color: #212529;
     position: fixed;
     bottom: 0;
-    color: white;
+    color: whitesmoke;
     width: 100%;
+    font-family: 'Roboto', sans-serif;
+
 }
 .footer span {
     font-size: 1.15rem;
 }
-a { 
-    color: white;
+.nav-link { 
+    color: whitesmoke;
     text-decoration:none;
-    font-size: 2em;
+    font-size: 1.5rem;
     font-weight: bold;
-    margin-right: 1rem;
-}
-body {
-    overflow-x: hidden; /* Prevent horizontal overflow */
+    margin-right: 1.5rem;
+    font-family: 'Roboto', sans-serif;
 }

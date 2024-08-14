@@ -13,9 +13,12 @@
             <a class="navbar-brand" href="https://covertlawenforcement.com/">
                 <img src="/static/images/valorence.png" alt="Logo" id="logo">
               </a>
-            <div class="navbar justify-content-end">
+            <div class="navbar">
                 <a class="nav-link text-white" href="/">Home</a>
                 <a class="nav-link text-white" href="/help">Help</a>
+                {% if role == 'admin' %}
+                <a class="nav-link text-white" href="/admin">Admin</a>
+                {% endif %}
             </div>
         </div>
     </nav>
@@ -28,11 +31,10 @@
         </div>
     </div>
     <footer class="footer py-2">
-        <div class="text-center">
+        <div class="text-center mb-0">
             <span> © 2024 Covert Law Enforcement. All Rights Reserved | Support: (435)-565-6018</span>
         </div>
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-
   </body>
 </html>

@@ -149,7 +149,4 @@ document.addEventListener('DOMContentLoaded', function () {
             amps: Math.floor(Math.random() * 100)
         });
     }, 2000);
-
-    // Initialize the WebSocket connection
-/*    initializeWebSocket();*/
 });
