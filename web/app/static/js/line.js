@@ -23,23 +23,14 @@ document.addEventListener('DOMContentLoaded', function () {
         ]
     };
 
-    function selectDataType(type) {
-        document.querySelector('.chart-title').textContent = type.charAt(0).toUpperCase() + type.slice(1); // Update chart title dynamically
-        renderLineChart(lineChartData[type], type);
-    }
-
-    function renderLineChart(data, title) {
+    function renderLineChart() {
         Highcharts.chart('container-line-chart', {
             chart: {
                 type: 'spline',
                 backgroundColor: '#fff'
             },
             title: {
-                useHTML: true,
-                text: '&nbsp',
-                style: {
-                    color: '#333'
-                }
+                text: null // Remove chart title
             },
             xAxis: {
                 type: 'datetime',
@@ -55,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             yAxis: {
                 title: {
-                    text: null
+                    text: null // Remove y-axis title
                 },
                 min: 0,
                 labels: {
@@ -80,26 +71,29 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
             },
-            series: [{
-                name: title,
-                data: data
-            }],
+            series: [
+                {
+                    name: 'Volts',
+                    data: lineChartData.volts
+                },
+                {
+                    name: 'Watts',
+                    data: lineChartData.watts
+                },
+                {
+                    name: 'Amps',
+                    data: lineChartData.amps
+                }
+            ],
             credits: {
                 enabled: false
             },
             legend: {
-                enabled: false
+                enabled: true // Enable legend to differentiate data sets
             }
         });
     }
 
-    // Attach event listeners to buttons and initialize the chart
-    document.querySelectorAll('.btn-group button').forEach(button => {
-        button.addEventListener('click', function() {
-            selectDataType(button.textContent.toLowerCase());
-        });
-    });
-
-    // Initial chart and title setup
-    selectDataType('volts', 'watts', 'amps');
+    // Initial chart setup with all data sets
+    renderLineChart();
 });

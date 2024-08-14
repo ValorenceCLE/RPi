@@ -11,15 +11,13 @@
                 </div>
                 <div class="card-body">
                     <form method="post" action="/login">
-                        <div class="mb-3">
-                            <!-- <center><label for="username" class="form-label">Username</label></center> -->
+                        <div class="m-3">
                             <input type="text" class="form-control" id="username" name="username" required placeholder="Username">
                         </div>
-                        <div class="mb-3">
-                            <!-- <label for="password" class="form-label">Password</label> -->
+                        <div class="m-3">
                             <input type="password" class="form-control" id="password" name="password" required placeholder="Password">
                         </div>
-                        <center><button type="submit" class="btn btn-secondary">Login</button></center>
+                        <center><button type="submit" class="btn m-1">Login</button></center>
                     </form>
                     {% if error %}
                     <p class="text-danger">{{ error }}</p>

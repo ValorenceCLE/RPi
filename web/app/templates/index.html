@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{context}}{% endblock %}
+{% block title %}{{title}}{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="static/css/index.css">
 <div class="content-wrapper">
@@ -16,7 +16,7 @@
                 </div>
             </div>
         </div>
-        <div class="row justify-content-center mt-4">
+        <div class="row justify-content-center mt-4 m-0">
             <div class="col-10">
                 <div class="card p-3">
                     <figure class="row justify-content-center m-0">
@@ -37,7 +37,7 @@
             <div class="col-10 mb-4">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h4 class="chart-title">{{ system_name }}</h4>
+                        <h4 class="chart-title">Power Logs</h4>
                         <!-- Dropdown for Time Frame Selection -->
                         <div class="dropdown">
                           <button class="btn dropdown-toggle" type="button" id="lineTimeFrameSelector" data-bs-toggle="dropdown" aria-expanded="false">
@@ -68,7 +68,5 @@
 <script src="https://code.highcharts.com/highcharts.js"></script>
 <script src="https://code.highcharts.com/highcharts-more.js"></script>
 <script src="https://code.highcharts.com/modules/solid-gauge.js"></script>
-<script src="https://code.highcharts.com/modules/exporting.js"></script>
-<script src="https://code.highcharts.com/modules/export-data.js"></script>
 <script src="https://code.highcharts.com/modules/boost.js"></script>
 {% endblock %}
