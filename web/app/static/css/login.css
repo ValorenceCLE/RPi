@@ -1,0 +1,46 @@
+.card-header {
+    background-color: #0940BA;
+    color: whitesmoke;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+.card {
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+.btn{
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    background-color: #212529;
+    color: whitesmoke;
+    font-size: 1rem;
+    font-weight: bold;
+    transition: transform 0.3s;
+}
+.btn:hover{
+    transform: translateY(-1.5px);
+    background-color: #212529;
+    color: whitesmoke;
+}
+a:hover, a:focus {
+    text-decoration:underline;
+    color: whitesmoke;
+}
+label{
+    font-family: 'Roboto', sans-serif;
+    font-weight: bold;
+    color: #212529;
+    text-align: center;
+    font-size: 1.25rem;
+}
+.container{
+    padding: 5px;
+    justify-content: center;
+    align-items: center;
+    height: auto;
+    /* position the div in center */
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
