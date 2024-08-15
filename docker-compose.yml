@@ -51,6 +51,9 @@ services:
       - data_collection
     networks:
       - app-network
+    volumes:
+      - ./device_info:/app/device_info
+      - ./webapp:/app
     environment:
       - INFLUXDB_URL=http://influxdb:8086
       - REDIS_URL=redis://redis:6379
