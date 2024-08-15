@@ -19,7 +19,7 @@ COPY ./app /app
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --upgrade pip && pip install --default-timeout=150 -r requirements.txt
+RUN pip install --upgrade pip && pip install --default-timeout=150 --no-cache-dir -r requirements.txt
 
 # Command to run the application
 CMD ["python", "main.py"]
