@@ -17,8 +17,8 @@ services:
 
   data_collection:
     #Use Image not build
-    #build: ./data
-    image: data_collection:latest
+    build: ./data
+    #image: data_collection:latest
     volumes:
       - ./device_info:/app/device_info
     privileged: true
@@ -48,6 +48,7 @@ services:
     depends_on:
       - influxdb
       - redis
+      - data_collection
     networks:
       - app-network
     environment:
