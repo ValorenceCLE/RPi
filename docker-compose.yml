@@ -39,7 +39,24 @@ services:
       timeout: 5s
       retries: 10
 
+  webapp:
+    build: ./webapp
+    ports:
+      - "8000:8000"
+    depends_on:
+      - influxdb
+      - redis
+    networks:
+      - app-network
+    environment:
+      - INFLUXDB_URL=http://influxdb:8086
+      - REDIS_URL=redis://redis:6379
+    env_file:
+      - ./config/auth.env
+
 volumes:
   influxdb_data:
   device_info:
 
+networks:
+  app-network:
