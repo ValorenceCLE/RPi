@@ -53,8 +53,8 @@ async def help_page(request: Request, username: str = Depends(get_current_user))
     user_role = "admin" if is_admin(username) else "user"
     return templates.TemplateResponse("help.html", {"request": request, "username": username, "role": user_role})
 
-# Admin page route
-@app.get("/admin", response_class=HTMLResponse)
+# Alerts page route
+@app.get("/alerts", response_class=HTMLResponse)
 async def admin_page(request: Request, username: str = Depends(get_current_user)):
     print(f"Accessing /admin with username: {username}")
     
@@ -67,7 +67,7 @@ async def admin_page(request: Request, username: str = Depends(get_current_user)
     
     print("User is an admin. Access granted.")
     # Pass both username and role to the template
-    return templates.TemplateResponse("admin.html", {
+    return templates.TemplateResponse("alerts.html", {
         "request": request, 
         "username": username,
         "role": "admin" if is_admin(username) else "user"

@@ -14,12 +14,16 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 # Set the working directory
 WORKDIR /app
 
-# Copy application files
-COPY ./app /app
+# Copy req.
 COPY requirements.txt .
-
 # Install Python dependencies
 RUN pip install --upgrade pip && pip install --default-timeout=150 --no-cache-dir -r requirements.txt
+# Copy application
+COPY ./app /app
+
+
+
+
 
 # Command to run the application
 CMD ["python", "main.py"]

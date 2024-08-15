@@ -16,7 +16,9 @@ services:
       retries: 10
 
   data_collection:
-    build: ./data
+    #Use Image not build
+    #build: ./data
+    image: data_collection:latest
     volumes:
       - ./device_info:/app/device_info
     privileged: true
