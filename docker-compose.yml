@@ -40,7 +40,7 @@ services:
       retries: 10
 
   webapp:
-    build: ./webapp
+    build: ./web
     ports:
       - "8000:8000"
     depends_on:
