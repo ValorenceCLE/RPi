@@ -52,7 +52,7 @@ services:
     networks:
       - app-network
     volumes:
-      - ./webapp:/app
+      - ./web:/app
       - ./device_info:/app/device_info
     environment:
       - INFLUXDB_URL=http://influxdb:8086
