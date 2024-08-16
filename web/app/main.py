@@ -1,7 +1,7 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Request, Form
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Form #type: ignore
+from fastapi.staticfiles import StaticFiles #type: ignore
+from fastapi.templating import Jinja2Templates #type: ignore
+from fastapi.responses import HTMLResponse, RedirectResponse #type: ignore
 import os
 from routers import api
 
