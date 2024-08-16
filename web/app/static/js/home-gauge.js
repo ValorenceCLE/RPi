@@ -1,16 +1,13 @@
 document.addEventListener('DOMContentLoaded', async function () {
-    // Initialize WebSocket connection and gauge configurations
-    const pageName = window.location.pathname.split('/').pop(); // Extract page name from URL
-
-    // Fetch preset min/max values from the backend
-    const response = await fetch(`/presets/${pageName}`);
+    // Fetch the presets for the homepage
+    const response = await fetch('/presets/home');
     const presets = await response.json();
 
-    // Define default gauge options
+    // Define Gauge options/settings
     const gaugeOptions = {
         chart: {
             type: 'solidgauge',
-            backgroundColor: '#fff', // Light background
+            backgroundColor: '#fff',
         },
         title: null,
         pane: {
@@ -19,7 +16,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             startAngle: -90,
             endAngle: 90,
             background: {
-                backgroundColor: '#f4f4f4', // Very light background
+                backgroundColor: '#f4f4f4',
                 borderRadius: 5,
                 innerRadius: '60%',
                 outerRadius: '100%',
@@ -36,6 +33,11 @@ document.addEventListener('DOMContentLoaded', async function () {
             enabled: false
         },
         yAxis: {
+            stops: [
+                [0.1, '#4caf50'],  // Green
+                [0.5, '#ffeb3b'],  // Yellow
+                [0.9, '#f44336']   // Red
+            ],
             lineWidth: 0,
             tickWidth: 0,
             minorTickInterval: null,
@@ -43,13 +45,13 @@ document.addEventListener('DOMContentLoaded', async function () {
             title: {
                 y: -70,
                 style: {
-                    color: '#212529' // Dark color for title
+                    color: '#212529'
                 }
             },
             labels: {
                 y: 16,
                 style: {
-                    color: '#212529' // Dark color for labels
+                    color: '#212529'
                 }
             }
         },
@@ -61,7 +63,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     borderWidth: 0,
                     useHTML: true,
                     style: {
-                        color: '#212529' // Dark color for data labels
+                        color: '#212529'
                     }
                 }
             }
@@ -69,53 +71,65 @@ document.addEventListener('DOMContentLoaded', async function () {
     };
 
     // Initialize the gauges with the preset values
-    const gauges = {};
-    Object.keys(presets).forEach((key) => {
-        const containerId = `container-${key}`;
-
-        // Set up dynamic color stops based on the page and gauge type
-        let colorStops;
-        if (pageName === "network") {
-            // Reverse the color stops for the network gauges
-            colorStops = [
-                [0.1, '#f44336'],  // Red
-                [0.5, '#ffeb3b'],  // Yellow
-                [0.9, '#4caf50']   // Green
-            ];
-        } else {
-            // Default color stops
-            colorStops = [
-                [0.1, '#4caf50'],  // Green
-                [0.5, '#ffeb3b'],  // Yellow
-                [0.9, '#f44336']   // Red
-            ];
-        }
-
-        gauges[key] = Highcharts.chart(containerId, Highcharts.merge(gaugeOptions, {
+    const gauges = {
+        volts: Highcharts.chart('container-volts', Highcharts.merge(gaugeOptions, {
             yAxis: {
-                min: presets[key].min,
-                max: presets[key].max,
-                stops: colorStops,  // Apply the dynamic color stops
+                min: presets.volts.min,
+                max: presets.volts.max,
                 title: {
-                    text: key.charAt(0).toUpperCase() + key.slice(1),
-                    style: {
-                        color: '#333',
-                        opacity: 75
-                    }
+                    text: 'Volts'
                 }
             },
             series: [{
-                name: key,
-                data: [0], // Start with zero value
+                name: 'Volts',
+                data: [0],
                 dataLabels: {
-                    format: `<div style="text-align:center"><span style="font-size:1.15rem;color:#333">{y}</span><br/><span style="font-size:0.75rem;opacity:0.4;color:#333">${presets[key].suffix}</span></div>`
+                    format: `<div style="text-align:center"><span style="font-size:1.15rem;color:#333">{y}</span><br/><span style="font-size:0.75rem;opacity:0.4;color:#333">V</span></div>`
                 },
                 tooltip: {
-                    valueSuffix: presets[key].suffix
+                    valueSuffix: ' V'
                 }
             }]
-        }));
-    });
+        })),
+        temperature: Highcharts.chart('container-temp', Highcharts.merge(gaugeOptions, {
+            yAxis: {
+                min: presets.temperature.min,
+                max: presets.temperature.max,
+                title: {
+                    text: 'Temperature'
+                }
+            },
+            series: [{
+                name: 'Temperature',
+                data: [0],
+                dataLabels: {
+                    format: `<div style="text-align:center"><span style="font-size:1.15rem;color:#333">{y}</span><br/><span style="font-size:0.75rem;opacity:0.4;color:#333">°F</span></div>`
+                },
+                tooltip: {
+                    valueSuffix: ' °F'
+                }
+            }]
+        })),
+        latency: Highcharts.chart('container-lag', Highcharts.merge(gaugeOptions, {
+            yAxis: {
+                min: presets.latency.min,
+                max: presets.latency.max,
+                title: {
+                    text: 'Latency'
+                }
+            },
+            series: [{
+                name: 'Latency',
+                data: [0],
+                dataLabels: {
+                    format: `<div style="text-align:center"><span style="font-size:1.15rem;color:#333">{y}</span><br/><span style="font-size:0.75rem;opacity:0.4;color:#333">ms</span></div>`
+                },
+                tooltip: {
+                    valueSuffix: ' ms'
+                }
+            }]
+        }))
+    };
 
     // Function to update gauges with new data
     function updateGauges(data) {
@@ -126,8 +140,8 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     }
 
-    // WebSocket connection
-    const ws = new WebSocket(`ws://${window.location.host}/ws/${pageName}`);
+    // WebSocket connection for the homepage
+    const ws = new WebSocket(`ws://${window.location.host}/ws/`);
 
     ws.onmessage = function (event) {
         const data = JSON.parse(event.data);
