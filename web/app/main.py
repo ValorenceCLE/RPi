@@ -119,6 +119,12 @@ async def admin_page(request: Request, username: str = Depends(get_current_user)
         "system_name": "System",
         "model": "R&D System",
         "serial_number": "1234",
+        "uptime": "99 days",
+        "gauges": [
+            {"id": "volts", "title": "Volts"},
+            {"id": "watts", "title": "Watts"},
+            {"id": "amps", "title": "Amps"}
+        ],
         "role": "admin" if is_admin(username) else "user"
     })
 
@@ -141,6 +147,12 @@ async def admin_page(request: Request, username: str = Depends(get_current_user)
         "system_name": "Router",
         "model": "BR1 Mini",
         "serial_number": "NWAC0F2",
+        "uptime": "99 days",
+        "gauges": [
+            {"id": "volts", "title": "Volts"},
+            {"id": "watts", "title": "Watts"},
+            {"id": "amps", "title": "Amps"}
+        ],
         "role": "admin" if is_admin(username) else "user"
     })
 @app.get("/camera", response_class=HTMLResponse)
@@ -162,6 +174,12 @@ async def admin_page(request: Request, username: str = Depends(get_current_user)
         "system_name": "Camera",
         "model": "Q6135",
         "serial_number": "ABC",
+        "uptime": "99 days",
+        "gauges": [
+            {"id": "volts", "title": "Volts"},
+            {"id": "watts", "title": "Watts"},
+            {"id": "amps", "title": "Amps"}
+        ],
         "role": "admin" if is_admin(username) else "user"
     })
 @app.get("/network", response_class=HTMLResponse)
@@ -183,5 +201,11 @@ async def admin_page(request: Request, username: str = Depends(get_current_user)
         "system_name": "Network",
         "model": "BR1 Mini",
         "serial_number": "NWAC0F2",
+        "uptime": "99 days",
+        "gauges": [
+            {"id": "rsrp", "title": "RSRP"},
+            {"id": "rsrq", "title": "RSRQ"},
+            {"id": "sinr", "title": "SINR"}
+        ],
         "role": "admin" if is_admin(username) else "user"
     })

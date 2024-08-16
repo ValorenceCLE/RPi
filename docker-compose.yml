@@ -50,8 +50,6 @@ services:
       - influxdb
       - redis
       - data_collection
-    networks:
-      - app-network
     volumes:
       - ./web/app:/app
     environment:
@@ -63,6 +61,3 @@ services:
 volumes:
   influxdb_data:
   device_info:
-
-networks:
-  app-network:

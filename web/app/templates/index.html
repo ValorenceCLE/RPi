@@ -20,15 +20,11 @@
             <div class="col-10">
                 <div class="card p-3">
                     <figure class="row justify-content-center m-0">
+                        {% for gauge in gauges %}
                         <div class="col-4">
-                            <div id="container-volts" class="chart-container"></div>
+                            <div id="container-{{gauge.id}}" class="chart-container"></div>
                         </div>
-                        <div class="col-4">
-                            <div id="container-temp" class="chart-container"></div>
-                        </div>
-                        <div class="col-4">
-                            <div id="container-lag" class="chart-container"></div>
-                        </div>
+                        {% endfor %}
                     </figure>
                 </div>
             </div>

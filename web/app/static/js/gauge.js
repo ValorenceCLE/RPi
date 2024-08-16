@@ -1,4 +1,12 @@
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
+    // Initialize WebSocket connection and gauge configurations
+    const pageName = window.location.pathname.split('/').pop(); // Extract page name from URL
+
+    // Fetch preset min/max values from the backend
+    const response = await fetch(`/presets/${pageName}`);
+    const presets = await response.json();
+
+    // Define default gauge options
     const gaugeOptions = {
         chart: {
             type: 'solidgauge',
@@ -65,14 +73,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    // Initialize the gauges
-    const gauges = {
-        volts: Highcharts.chart('container-volts', Highcharts.merge(gaugeOptions, {
+    // Initialize the gauges with the preset values
+    const gauges = {};
+    Object.keys(presets).forEach((key) => {
+        const containerId = `container-${key}`;
+        gauges[key] = Highcharts.chart(containerId, Highcharts.merge(gaugeOptions, {
             yAxis: {
-                min: 0,
-                max: 100,
+                min: presets[key].min,
+                max: presets[key].max,
                 title: {
-                    text: 'Volts',
+                    text: key.charAt(0).toUpperCase() + key.slice(1),
                     style: {
                         color: '#333',
                         opacity: 75
@@ -80,73 +90,52 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             },
             series: [{
-                name: 'Volts',
-                data: [Math.floor(Math.random() * 100)],
+                name: key,
+                data: [0], // Start with zero value
                 dataLabels: {
-                    format: '<div style="text-align:center"><span style="font-size:1.15rem;color:#333">{y}</span><br/><span style="font-size:0.75rem;opacity:0.4;color:#333">V</span></div>'
+                    format: `<div style="text-align:center"><span style="font-size:1.15rem;color:#333">{y}</span><br/><span style="font-size:0.75rem;opacity:0.4;color:#333">${presets[key].suffix}</span></div>`
                 },
                 tooltip: {
-                    valueSuffix: ' V'
+                    valueSuffix: presets[key].suffix
                 }
             }]
-        })),
-        watts: Highcharts.chart('container-temp', Highcharts.merge(gaugeOptions, {
-            yAxis: {
-                min: 0,
-                max: 100,
-                title: {
-                    text: 'Temperature'
-                }
-            },
-            series: [{
-                name: 'Temperature',
-                data: [Math.floor(Math.random() * 100)],
-                dataLabels: {
-                    format: '<div style="text-align:center"><span style="font-size:1.15rem;color:#333">{y}</span><br/><span style="font-size:0.75rem;opacity:0.4;color:#333">F</span></div>'
-                },
-                tooltip: {
-                    valueSuffix: ' F'
-                }
-            }]
-        })),
-        amps: Highcharts.chart('container-lag', Highcharts.merge(gaugeOptions, {
-            yAxis: {
-                min: 0,
-                max: 100,
-                title: {
-                    text: 'Latency'
-                }
-            },
-            series: [{
-                name: 'Latency',
-                data: [Math.floor(Math.random() * 100)],
-                dataLabels: {
-                    format: '<div style="text-align:center"><span style="font-size:1.15rem;color:#333">{y}</span><br/><span style="font-size:0.75rem;opacity:0.4;color:#333">ms</span></div>'
-                },
-                tooltip: {
-                    valueSuffix: ' ms'
-                }
-            }]
-        }))
-    };
+        }));
+    });
+
+    // Function to update gauges with new data
     function updateGauges(data) {
-        if (gauges.volts) {
-            gauges.volts.series[0].points[0].update(data.volts);
-        }
-        if (gauges.watts) {
-            gauges.watts.series[0].points[0].update(data.watts);
-        }
-        if (gauges.amps) {
-            gauges.amps.series[0].points[0].update(data.amps);
-        }
+        Object.keys(gauges).forEach(key => {
+            if (gauges[key]) {
+                gauges[key].series[0].points[0].update(data[key]);
+            }
+        });
     }
 
-    // For now, use random data for demonstration
-    setInterval(function () {
-        updateGauges({
-            volts: Math.floor(Math.random() * 100),
-            watts: Math.floor(Math.random() * 100),
-            amps: Math.floor(Math.random() * 100)
+    // WebSocket connection
+    const ws = new WebSocket(`ws://${window.location.host}/ws/${pageName}`);
+
+    ws.onmessage = function (event) {
+        const data = JSON.parse(event.data);
+
+        // Error handling: If there's an error, show it in the gauge titles
+        if (data.error) {
+            Object.keys(gauges).forEach(key => {
+                gauges[key].yAxis[0].setTitle({ text: 'Error' });
+            });
+        } else {
+            // Update gauges with the received data
+            updateGauges(data);
+        }
+    };
+
+    ws.onerror = function (event) {
+        console.error("WebSocket error observed:", event);
+        Object.keys(gauges).forEach(key => {
+            gauges[key].yAxis[0].setTitle({ text: 'Error' });
         });
-    }, 2000);
+    };
+
+    ws.onclose = function () {
+        console.log("WebSocket connection closed");
+    };
 });
