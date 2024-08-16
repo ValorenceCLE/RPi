@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException #type: ignore
 import RPi.GPIO as GPIO
 import asyncio
 from datetime import datetime, timedelta
