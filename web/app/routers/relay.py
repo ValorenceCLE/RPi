@@ -79,16 +79,4 @@ async def get_relay_status():
     return {name: state["status"] for name, state in relay_states.items()}
 
     
-@router.post("API/guage")
-async def live_guages():
-    pass
-    #Functions to pull the streams from Redis and push the data into the guages
-    #Ideally set this up so that this function and ONE JS file can be used universally for all the guages.
-    
-@router.post("API/graph")
-async def graph_data():
-    pass
-    #Pull the live data from Redis and graph it.
-    #Graph all values
-    #One hour time frame. Else Route to InfluxDB dashboard
     
