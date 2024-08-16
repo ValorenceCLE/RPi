@@ -3,9 +3,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 import os
+from routers import api
 
 app = FastAPI()
-
+app.include_router(api.router)
 # Load credentials directly from environment variables
 USER_USERNAME = os.getenv("USER_USERNAME")
 USER_PASSWORD = os.getenv("USER_PASSWORD")

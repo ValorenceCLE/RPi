@@ -1,10 +1,11 @@
-FROM python:3.11-slim
+FROM python:3.11-buster
 
 WORKDIR /app
 
 # Copy application files
-COPY ./app /app
 COPY requirements.txt .
+COPY ./app /app
+
 
 # Install Python dependencies
 RUN pip install --upgrade pip && pip install --default-timeout=150 --no-cache-dir -r requirements.txt
