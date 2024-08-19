@@ -1,30 +1,23 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const lineChartData = {
-        volts: [
-            [Date.UTC(2023, 4, 1), 12.6],
-            [Date.UTC(2023, 4, 2), 12.1],
-            [Date.UTC(2023, 4, 3), 12.3],
-            [Date.UTC(2023, 4, 4), 13.1],
-            [Date.UTC(2023, 4, 5), 12.1]
-        ],
-        watts: [
-            [Date.UTC(2023, 4, 1), 13.1],
-            [Date.UTC(2023, 4, 2), 13.6],
-            [Date.UTC(2023, 4, 3), 12.9],
-            [Date.UTC(2023, 4, 4), 13.5],
-            [Date.UTC(2023, 4, 5), 13.8]
-        ],
-        amps: [
-            [Date.UTC(2023, 4, 1), 1.1],
-            [Date.UTC(2023, 4, 2), 0.9],
-            [Date.UTC(2023, 4, 3), 1],
-            [Date.UTC(2023, 4, 4), 1.3],
-            [Date.UTC(2023, 4, 5), 1.4]
-        ]
+    // Determine the page and datasets dynamically
+    const pageName = window.location.pathname.split('/').pop(); // Extract page name from URL
+
+    // Map datasets based on the page
+    const datasets = {
+        system: ['Volts', 'Watts', 'Amps'],
+        router: ['Volts', 'Watts', 'Amps'],
+        camera: ['Volts', 'Watts', 'Amps'],
+        network: ['RSRP', 'RSRQ', 'SINR']
     };
 
-    function renderLineChart() {
-        Highcharts.chart('container-line-chart', {
+    const currentPageData = datasets[pageName] || datasets['system']; // Default to system if page not found
+
+    // Initialize the chart
+    let chart = null;
+
+    // Function to render the chart
+    function renderLineChart(data) {
+        chart = Highcharts.chart('container-line-chart', {
             chart: {
                 type: 'spline',
                 backgroundColor: '#fff'
@@ -48,7 +41,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 title: {
                     text: null // Remove y-axis title
                 },
-                min: 0,
                 labels: {
                     style: {
                         color: '#333'
@@ -65,26 +57,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         symbol: 'circle',
                         fillColor: '#FFFFFF',
                         enabled: true,
-                        radius: 2.5,
+                        radius: 1.5,
                         lineWidth: 1,
                         lineColor: null
                     }
                 }
             },
-            series: [
-                {
-                    name: 'Volts',
-                    data: lineChartData.volts
-                },
-                {
-                    name: 'Watts',
-                    data: lineChartData.watts
-                },
-                {
-                    name: 'Amps',
-                    data: lineChartData.amps
-                }
-            ],
+            series: data, // Load data dynamically
             credits: {
                 enabled: false
             },
@@ -94,6 +73,48 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Initial chart setup with all data sets
-    renderLineChart();
+    // Fetch and update the chart data
+    async function fetchChartData(timeFrame) {
+        try {
+            const response = await fetch(`/${pageName}/data/${timeFrame}`);
+            const result = await response.json();
+
+            if (result.error) {
+                chart.setTitle({ text: 'Error' });
+                return;
+            }
+
+            const chartData = currentPageData.map((name, index) => {
+                return {
+                    name: name,
+                    data: result.data.map(item => [Date.parse(item.timestamp), item[name.toLowerCase()]])
+                };
+            });
+
+            // Render or update the chart with the new data
+            if (chart) {
+                chart.series.forEach((series, index) => {
+                    series.setData(chartData[index].data);
+                });
+            } else {
+                renderLineChart(chartData);
+            }
+        } catch (error) {
+            console.error("Error fetching chart data:", error);
+            if (chart) {
+                chart.setTitle({ text: 'Error' });
+            }
+        }
+    }
+
+    // Event listener for time frame selection
+    document.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', function () {
+            const timeFrame = this.getAttribute('data-value');
+            fetchChartData(timeFrame);
+        });
+    });
+
+    // Initial load with 15 minutes of data (or the default time frame)
+    fetchChartData('15m');
 });

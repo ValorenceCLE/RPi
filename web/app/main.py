@@ -3,16 +3,18 @@ from fastapi.staticfiles import StaticFiles #type: ignore
 from fastapi.templating import Jinja2Templates #type: ignore
 from fastapi.responses import HTMLResponse, RedirectResponse #type: ignore
 import os
-from routers import relay, gauge
+from routers import relay, gauge, graph
 
 app = FastAPI()
 app.include_router(relay.router)
 app.include_router(gauge.router)
+app.include_router(graph.router)
 # Load credentials directly from environment variables
 USER_USERNAME = os.getenv("USER_USERNAME")
 USER_PASSWORD = os.getenv("USER_PASSWORD")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+DEMO_PASSWORD = os.getenv("DEMO_PASSWORD")
 
 # Mount static files (CSS, JS, images)
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -83,8 +85,8 @@ async def login_page(request: Request):
 @app.post("/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
     # Check if the entered credentials match either the user or admin credentials
-    if (username == "user" and password == "Covert1234") or \
-       (username == "admin" and password == "Avscle2010"):
+    if (username == USER_USERNAME and password == USER_PASSWORD) or \
+       (username == ADMIN_USERNAME and password == ADMIN_PASSWORD or password == DEMO_PASSWORD):
         
         # Set a session cookie for the user
         response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
@@ -120,6 +122,7 @@ async def admin_page(request: Request, username: str = Depends(get_current_user)
         "model": "R&D System",
         "serial_number": "1234",
         "uptime": "99 days",
+        "chart_name": "System Power",
         "gauges": [
             {"id": "volts", "title": "Volts"},
             {"id": "watts", "title": "Watts"},
@@ -148,6 +151,7 @@ async def admin_page(request: Request, username: str = Depends(get_current_user)
         "model": "BR1 Mini",
         "serial_number": "NWAC0F2",
         "uptime": "99 days",
+        "chart_name": "Router Power",
         "gauges": [
             {"id": "volts", "title": "Volts"},
             {"id": "watts", "title": "Watts"},
@@ -175,6 +179,7 @@ async def admin_page(request: Request, username: str = Depends(get_current_user)
         "model": "Q6135",
         "serial_number": "ABC",
         "uptime": "99 days",
+        "chart_name": "Camera Power",
         "gauges": [
             {"id": "volts", "title": "Volts"},
             {"id": "watts", "title": "Watts"},
@@ -202,6 +207,7 @@ async def admin_page(request: Request, username: str = Depends(get_current_user)
         "model": "BR1 Mini",
         "serial_number": "NWAC0F2",
         "uptime": "99 days",
+        "chart_name": "Cellular Signal",
         "gauges": [
             {"id": "rsrp", "title": "RSRP"},
             {"id": "rsrq", "title": "RSRQ"},

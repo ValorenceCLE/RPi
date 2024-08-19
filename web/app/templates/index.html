@@ -33,18 +33,18 @@
             <div class="col-10 mb-4">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h4 class="chart-title">Power Logs</h4>
+                        <h4 class="chart-title">{{ chart_name }}</h4>
                         <!-- Dropdown for Time Frame Selection -->
                         <div class="dropdown">
                           <button class="btn dropdown-toggle" type="button" id="lineTimeFrameSelector" data-bs-toggle="dropdown" aria-expanded="false">
                             Time Frame
                           </button>
                           <ul class="dropdown-menu" aria-labelledby="lineTimeFrameSelector">
-                            <li><a class="dropdown-item" data-value="1d">Today</a></li>
-                            <li><a class="dropdown-item" data-value="3d">3 Days</a></li>
-                            <li><a class="dropdown-item" data-value="7d">1 Week</a></li>
-                            <li><a class="dropdown-item" data-value="14d">2 Weeks</a></li>
-                            <li><a class="dropdown-item" data-value="30d">1 Month</a></li>
+                            <li><a class="dropdown-item" data-value="15m">15 Minutes</a></li>
+                            <li><a class="dropdown-item" data-value="30m">30 Minutes</a></li>
+                            <li><a class="dropdown-item" data-value="1h">1 Hour</a></li>
+                            <li><a class="dropdown-item" data-value="3h">3 Hours</a></li>
+                            <li><a class="dropdown-item" data-value="6h">6 Hours</a></li>
                           </ul>
                         </div>
                     </div>
