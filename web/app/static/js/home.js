@@ -89,3 +89,20 @@ document.getElementById("RunStrobe").addEventListener("click", () => controlRela
 document.getElementById("FanOn").addEventListener("click", () => controlRelay("fan", "on"));
 document.getElementById("FanOff").addEventListener("click", () => controlRelay("fan", "off"));
 document.getElementById("RunFan").addEventListener("click", () => controlRelay("fan", "run_5_min"));
+
+document.addEventListener("DOMContentLoaded", function() {
+    fetch('/cellular')
+        .then(response => response.json())
+        .then(data => {
+            // Check if the response contains quality data
+            if (data.Quality) {
+                document.getElementById('signal').textContent = "Signal Quality: " + data.Quality;
+            } else {
+                document.getElementById('signal').textContent = "Signal Quality: Data Unavailable";
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching signal quality:', error);
+            document.getElementById('signal').textContent = "Signal Quality: Error";
+        });
+});

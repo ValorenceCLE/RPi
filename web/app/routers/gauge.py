@@ -6,12 +6,12 @@ import os
 
 router = APIRouter()
 
-redis = Redis.from_url(os.getenv('REDIS_URL', 'redis://redis:6379'))
+redis = Redis.from_url(os.getenv('REDIS_URL'))
 
 PRESET_VALUES = {
-    "system": {"volts": {"min": 0, "max": 20, "suffix": "V"}, "watts": {"min": 0, "max": 24, "suffix": "W"}, "amps": {"min": 0, "max": 5, "suffix": "A"}},
-    "router": {"volts": {"min": 0, "max": 20, "suffix": "V"}, "watts": {"min": 0, "max": 24, "suffix": "W"}, "amps": {"min": 0, "max": 5, "suffix": "A"}},
-    "camera": {"volts": {"min": 0, "max": 20, "suffix": "V"}, "watts": {"min": 0, "max": 24, "suffix": "W"}, "amps": {"min": 0, "max": 5, "suffix": "A"}},
+    "system": {"volts": {"min": 0, "max": 20, "suffix": "V"}, "watts": {"min": 0, "max": 24, "suffix": "W"}, "amps": {"min": 0, "max": 2, "suffix": "A"}},
+    "router": {"volts": {"min": 0, "max": 20, "suffix": "V"}, "watts": {"min": 0, "max": 24, "suffix": "W"}, "amps": {"min": 0, "max": 2, "suffix": "A"}},
+    "camera": {"volts": {"min": 0, "max": 20, "suffix": "V"}, "watts": {"min": 0, "max": 24, "suffix": "W"}, "amps": {"min": 0, "max": 2, "suffix": "A"}},
     "network": {"rsrp": {"min": -110, "max": -80, "suffix": "dBm"}, "rsrq": {"min": -30, "max": 0, "suffix": "dB"}, "sinr": {"min": -10, "max": 20, "suffix": "dB"}},
     "home": {"volts": {"min": 0, "max": 20, "suffix": "V"}, "temperature": {"min": -32, "max": 120, "suffix": "°F"}, "latency": {"min": 0, "max": 1000, "suffix": "ms"}},
 

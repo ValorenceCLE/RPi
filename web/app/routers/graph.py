@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException #type: ignore
 from datetime import datetime, timedelta
 import asyncio
-from redis.asyncio import Redis
+from redis.asyncio import Redis #type:ignore
 import os
 import json
 
