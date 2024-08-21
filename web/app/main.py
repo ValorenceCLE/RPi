@@ -4,12 +4,14 @@ from fastapi.templating import Jinja2Templates #type: ignore
 from fastapi.responses import HTMLResponse, RedirectResponse #type: ignore
 import os
 from routers import relay, gauge, graph, signal
+import json
 
 app = FastAPI()
 app.include_router(relay.router)
 app.include_router(gauge.router)
 app.include_router(graph.router)
 app.include_router(signal.router)
+
 # Load credentials directly from environment variables
 USER_USERNAME = os.getenv("USER_USERNAME")
 USER_PASSWORD = os.getenv("USER_PASSWORD")
@@ -17,6 +19,10 @@ ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 DEMO_PASSWORD = os.getenv("DEMO_PASSWORD")
 
+SYSTEM_INFO_PATH = '/app/device_info/system_info.json'
+with open(SYSTEM_INFO_PATH, 'r') as file:
+    data = json.load(file)
+    
 # Mount static files (CSS, JS, images)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -30,13 +36,11 @@ async def get_current_user(request: Request):
         return RedirectResponse(url="/login")
     return username
 
-
 # Helper function to check if the user is an admin
 def is_admin(username: str):
     is_admin_user = username == "admin"
     print(f"Is admin check: {is_admin_user}")  # Debugging output
     return is_admin_user
-
 
 # Home page route
 @app.get("/", response_class=HTMLResponse)
@@ -118,10 +122,10 @@ async def admin_page(request: Request, username: str = Depends(get_current_user)
     # Pass both username and role to the template
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "title": "System Info", 
-        "system_name": "System",
-        "model": "R&D System",
-        "serial_number": "1234",
+        "title": "System Info",
+        "system_name": "System", 
+        "model": data["RPi"]["System_Name"],
+        "serial_number": data["RPi"]["Serial_Number"],
         "uptime": "99 days",
         "chart_name": "System Power",
         "gauges": [
@@ -149,8 +153,8 @@ async def admin_page(request: Request, username: str = Depends(get_current_user)
         "request": request, 
         "title": "Router Info", 
         "system_name": "Router",
-        "model": "BR1 Mini",
-        "serial_number": "NWAC0F2",
+        "model": data["Router"]["Model"],
+        "serial_number": data["Router"]["Serial_Number"],
         "uptime": "99 days",
         "chart_name": "Router Power",
         "gauges": [
@@ -177,8 +181,8 @@ async def admin_page(request: Request, username: str = Depends(get_current_user)
         "request": request,
         "title": "Camera Info",  
         "system_name": "Camera",
-        "model": "Q6135",
-        "serial_number": "ABC",
+        "model": data["Camera"]["Model"],
+        "serial_number": data["Camera"]["Serial_Number"],
         "uptime": "99 days",
         "chart_name": "Camera Power",
         "gauges": [
