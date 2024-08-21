@@ -8,51 +8,53 @@
     <link rel="stylesheet" href="static/css/base.css">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="https://covertlawenforcement.com/">
-                <img src="/static/images/valorence.png" alt="Logo" id="logo">
-            </a>
-            <div class="collapse navbar-collapse justify-content-end"> <!-- Align all items to the right -->
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="/">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="/help">Help</a>
-                    </li>
-                    {% if role == 'admin' %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Admin
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="navbarDropdown">
-                            <li><a class="dropdown-item" href="/system">System</a></li>
-                            <li><a class="dropdown-item" href="/router">Router</a></li>
-                            <li><a class="dropdown-item" href="/camera">Camera</a></li>
-                            <li><a class="dropdown-item" href="/network">Network</a></li>
-                            <!-- <li><a class="dropdown-item" href="/alerts">Alerts</a></li> -->
-                            <!-- Add more admin links as needed -->
-                        </ul>
-                    </li>
-                    {% endif %}
-                </ul>
+    <div class="content-wrapper">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="https://covertlawenforcement.com/">
+                    <img src="/static/images/valorence.png" alt="Logo" id="logo">
+                </a>
+                <div class="collapse navbar-collapse justify-content-end"> <!-- Align all items to the right -->
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="/">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="/help">Help</a>
+                        </li>
+                        {% if role == 'admin' %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Admin
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="navbarDropdown">
+                                <li><a class="dropdown-item" href="/system">System</a></li>
+                                <li><a class="dropdown-item" href="/router">Router</a></li>
+                                <li><a class="dropdown-item" href="/camera">Camera</a></li>
+                                <li><a class="dropdown-item" href="/network">Network</a></li>
+                                <!-- <li><a class="dropdown-item" href="/alerts">Alerts</a></li> -->
+                                <!-- Add more admin links as needed -->
+                            </ul>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
             </div>
-        </div>
-    </nav>
-    <!--MAIN CONTENT -->
-    <div class="main-container">
-        <div class="content-wrapper">
+        </nav>
+        <!--MAIN CONTENT -->
+        <div class="main-container">
             <div class="content">
                 {% block content %}{% endblock %}
             </div>
         </div>
+        <br>
+        <br>
+        <footer class="footer">
+            <div class="text-center mb-0">
+                <span> © 2024 Covert Law Enforcement. All Rights Reserved | Support: (435)-565-6018</span>
+            </div>
+        </footer>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     </div>
-    <footer class="footer py-2">
-        <div class="text-center mb-0">
-            <span> © 2024 Covert Law Enforcement. All Rights Reserved | Support: (435)-565-6018</span>
-        </div>
-    </footer>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
   </body>
 </html>
