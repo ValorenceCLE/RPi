@@ -28,8 +28,7 @@ class CellularMetrics:
         self.collection_interval = 30  # Interval in seconds between SNMP requests
         with open(self.SYSTEM_INFO_PATH, 'r') as file:
             data = json.load(file)
-        #self.model = data["Router"]["Model"]
-        self.model = "Peplink MAX BR1 Mini"
+        self.model = data["Router"]["Model"]
         self.oid_mappings = OID_MAPPINGS[self.model]
         
     async def fetch_snmp_data(self, host, community, oid_mappings):

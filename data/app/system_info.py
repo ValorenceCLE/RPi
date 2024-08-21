@@ -1,10 +1,9 @@
 import json
 import asyncio
-import aiosnmp # type: ignore
-import aiofiles # type: ignore
+import aiosnmp  # type: ignore
+import aiofiles  # type: ignore
 
 MODEL_OID = '.1.3.6.1.2.1.1.1.0'
-SYSTEM_NAME = '.1.3.6.1.2.1.1.5.0'
 COMMUNITY = 'public'
 PATH = '/app/device_info/system_info.json'
 
@@ -34,7 +33,7 @@ async def get_snmp_data(host, oid, community=COMMUNITY):
     except Exception as e:
         print(f"SNMP request failed: {e}")
         return None
-    
+
 async def rpi_serial():
     try:
         async with aiofiles.open('/proc/cpuinfo', 'r') as f:
@@ -53,20 +52,50 @@ async def update_rpi_info():
         'Sensor_ID': serial_number + '-AHT10' if serial_number else None
     }
 
-async def get_device_info(device_name):
-    device = TARGETS[device_name]
-    model = await get_snmp_data(device['ip'], device['model_oid'])
-    serial = None
-    if device_name == 'Router' and model:
-        serial_oid = device['serial_oids'].get(model)
+async def parse_router_info():
+    router_target = TARGETS['Router']
+    
+    # Retrieve the router model data
+    model = await get_snmp_data(router_target['ip'], router_target['model_oid'])
+    if model and isinstance(model, bytes):
+        model = model.decode('utf-8', errors='replace')  # Decode model if it's bytes
+    
+    serial = None  # Initialize serial
+    
+    # If model is retrieved, look up the corresponding serial OID and get the serial number
+    if model:
+        serial_oid = router_target['serial_oids'].get(model)
         if serial_oid:
-            serial = await get_snmp_data(device['ip'], serial_oid)
-    elif device_name == 'Camera':
-        serial = await get_snmp_data(device['ip'], device['serial_oid'])
-        if serial:
-            serial = serial.split('0x')[1].strip().upper()
-        if model:
-            model = model.split(';')[1].strip()
+            serial = await get_snmp_data(router_target['ip'], serial_oid)
+            if serial and isinstance(serial, bytes):
+                # Decode OctetString directly to a string, removing any unwanted characters
+                try:
+                    serial = serial.decode('utf-8', errors='ignore')
+                except UnicodeDecodeError:
+                    serial = serial.decode('latin1')
+    # Return the decoded model and serial, or None if they are not retrieved
+    if model and serial:
+        return {
+            'Model': model,
+            'Serial_Number': serial,  # Plain string without colons
+            'Sensor_ID': serial + '-INA260'
+        }
+    return None
+
+async def parse_camera_info():
+    camera_target = TARGETS['Camera']
+    model = await get_snmp_data(camera_target['ip'], camera_target['model_oid'])
+    serial = await get_snmp_data(camera_target['ip'], camera_target['serial_oid'])
+    
+    if serial and isinstance(serial, bytes):
+        serial = ':'.join(f'{byte:02X}' for byte in serial)
+        serial = serial.replace(":", "").upper()
+    
+    if model and isinstance(model, bytes):
+        model = model.decode()
+        model_parts = model.split(';')
+        if len(model_parts) > 1:
+            model = model_parts[1].strip()
     
     if model and serial:
         return {
@@ -79,11 +108,11 @@ async def get_device_info(device_name):
 async def start_up(path=PATH):
     system_info = {
         'RPi': await update_rpi_info(),
-        'Router': await get_device_info('Router'),
-        'Camera': await get_device_info('Camera')
+        'Router': await parse_router_info(),
+        'Camera': await parse_camera_info()
     }
     async with aiofiles.open(path, 'w') as file:
         await file.write(json.dumps(system_info, indent=4))
-        
+
 if __name__ == "__main__":
     asyncio.run(start_up())

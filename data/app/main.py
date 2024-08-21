@@ -20,7 +20,6 @@ async def main():
     
     
     tasks = [
-        #asyncio.create_task(start_up()),
         asyncio.create_task(net.run()),
         asyncio.create_task(cp.run()),
         asyncio.create_task(rp.run()),
@@ -29,7 +28,8 @@ async def main():
         asyncio.create_task(cell.cell_run()), #Currently Using demo sim, need to give back
         asyncio.create_task(prc.process_streams())
     ]
-    
+    await start_up() # Set up System Info
+    await asyncio.sleep(3) # Make sure System Info is set up
     await asyncio.gather(*tasks)
     
     
