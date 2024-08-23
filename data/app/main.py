@@ -7,6 +7,8 @@ from net import NetworkPing
 from cell import CellularMetrics
 from system_info import start_up
 from listener import Processor
+from dashboard import Dashboard_Setup
+
 
 async def main():
     net = NetworkPing() 
@@ -16,7 +18,9 @@ async def main():
     sp = INA260System()
     env = AHT10()
     streams = ['network_data', 'camera_data', 'router_data', 'environment_data', 'system_data', 'cellular_data'] #List the Streams that need to be listened too, pass var to the Processor
-    prc = Processor(streams) #Saves Data to InfluxDB 
+    prc = Processor(streams) #Saves Data to InfluxDB
+    dashboard = Dashboard_Setup()
+
     
     
     tasks = [
@@ -29,6 +33,7 @@ async def main():
         asyncio.create_task(prc.process_streams())
     ]
     await start_up() # Set up System Info
+    await dashboard.run()
     await asyncio.sleep(3) # Make sure System Info is set up
     await asyncio.gather(*tasks)
     
