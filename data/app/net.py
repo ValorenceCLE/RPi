@@ -4,6 +4,9 @@ import asyncio
 import aioping # type: ignore
 from redis.asyncio import Redis #type: ignore
 
+# This script also needs better error handling
+# Also check the packet loss logic. Some of the data being shown in the database doesnt make sense for data point that is supposed to be a %
+
 class NetworkPing:
     def __init__(self, target_ip='8.8.8.8'):
         self.target_ip = target_ip

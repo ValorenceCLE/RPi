@@ -3,6 +3,8 @@ import asyncio
 import aiosnmp  # type: ignore
 import aiofiles  # type: ignore
 
+# This script also needs better error handling if the router or camera is offline or for some reason not responding.
+
 MODEL_OID = '.1.3.6.1.2.1.1.1.0'
 COMMUNITY = 'public'
 PATH = '/app/device_info/system_info.json'

@@ -1,15 +1,18 @@
 import asyncio
-import aiofiles  # For async file handling
+import aiofiles #type: ignore
 import json
 import os
-from influxdb_client import InfluxDBClient
-from influxdb_client.rest import ApiException
+from influxdb_client import InfluxDBClient #type: ignore
+from influxdb_client.rest import ApiException #type: ignore
 
 # I have no idea how this code works, but it does.
 # PROCEED WITH CAUTION IF YOU PLAN TO MODIFY THIS SCRIPT
 # InfluxDB has terrible documetnation for this.
 # Hours Wasted: 18
 # Suicidal thoughts due to this script: 4
+
+# We may be able to refactor this whole script using these functions
+# => from influxdb_client.domain import Dashboard, DashboardWithViewProperties
 
 class Dashboard_Setup:
     def __init__(self):
@@ -59,8 +62,6 @@ class Dashboard_Setup:
     async def create_dashboard(self):
         if await self.check_existing_dashboard():
             return  # Skip creation if a dashboard already exists
-
-        print(f"Token: {self.token}, Org: {self.org}, Bucket: {self.bucket}")
 
         async with aiofiles.open(self.dashboard_file, 'r') as file:
             dashboard_data = await file.read()

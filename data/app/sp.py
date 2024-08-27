@@ -1,9 +1,12 @@
 import os
 import asyncio
 from datetime import datetime
+import json
+import aiofiles #type: ignore
 from redis.asyncio import Redis # type: ignore
 import board # type: ignore
 import adafruit_ina260 # type: ignore
+from alerting import alert_publisher
 
 class INA260System:
     def __init__(self):
@@ -12,6 +15,8 @@ class INA260System:
         self.redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
         self.redis = Redis.from_url(self.redis_url)
         self.collection_interval = 30  # Interval in seconds between data collections
+        self.alert_file = 'alerts.json'
+        self.null = -9999
         
     async def get_amps(self):
         return await asyncio.to_thread(lambda: round(self.ina260.current / 1000, 1))
@@ -22,11 +27,45 @@ class INA260System:
     async def get_watts(self):
         return await asyncio.to_thread(lambda: round(self.ina260.power / 1000, 1))
     
-    async def stream_data(self):
-        timestamp = datetime.utcnow().isoformat()
-        volts = await self.get_volts()
-        watts = await self.get_watts()
-        amps = await self.get_amps()
+    # Entry Point
+    async def process_data(self):
+        async with aiofiles.open(self.alert_file, 'r') as file:
+            alert_templates = await file.read()
+            alert_templates = json.loads(alert_templates)
+            warning_alert = alert_templates["system_warning"]
+            error_alert = alert_templates["system_error"]
+        try:
+            timestamp = datetime.utcnow().isoformat()
+            volts = await self.get_volts()
+            watts = await self.get_watts()
+            amps = await self.get_amps()
+            data = f"Volts: {volts}, Watts: {watts}, Amps: {amps}"
+            if watts < 12:
+                # Power Loss
+                await alert_publisher.publish_alert(
+                    source=error_alert["source"],
+                    value=data,
+                    level=error_alert["level"],
+                    timestamp=timestamp,
+                    message=error_alert["message"]
+                )
+                await self.stream_data(volts, watts, amps, timestamp)
+            elif watts < 14 or watts > 24:
+                # Power is outside of an acceptable range
+                await alert_publisher.publish_alert(
+                    source=warning_alert["source"],
+                    value=data,
+                    level=warning_alert["level"],
+                    timestamp=timestamp,
+                    message=warning_alert["message"]
+                )
+                await self.stream_data(volts, watts, amps, timestamp)
+            else:
+                await self.stream_data(volts, watts, amps, timestamp)
+        except BaseException as e:
+            print(f"Error processing data: {e}")
+                    
+    async def stream_data(self, volts, watts, amps, timestamp):
         data = {
             "timestamp": timestamp,
             "volts": volts,
@@ -37,9 +76,10 @@ class INA260System:
         
     async def run(self):
         while True:
-            await self.stream_data()
+            await self.process_data()
             await asyncio.sleep(self.collection_interval)
             
 if __name__ == "__main__":
     sp = INA260System()
     asyncio.run(sp.run())
+    
