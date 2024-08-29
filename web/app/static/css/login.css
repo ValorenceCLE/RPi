@@ -3,19 +3,22 @@
     color: whitesmoke;
     font-size: 1.5rem;
     font-weight: bold;
+    width: auto;
 }
 .card {
     border-radius: 15px;
     overflow: hidden;
     box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    width: auto;
 }
 .btn{
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     background-color: #0940BA;
     color: whitesmoke;
-    font-size: 1rem;
     font-weight: bold;
     transition: transform 0.3s;
+    width: 25%;
+    font-size: large;
 }
 .btn:hover{
     transform: translateY(-1.5px);
@@ -40,6 +43,19 @@ a:hover, a:focus {
 ::placeholder{
     font-family: 'Roboto', sans-serif;
     font-weight: medium;
+    font-style: italic;
     color: whitesmoke;
     font-size: 1.5rem;
+    text-align: center;
+    height: fit-content;
+    
+}
+.form-control{
+    width: 90%;
+    justify-content: center;
+    text-align: center;
+    font-family: 'Roboto', sans-serif;
+    font-weight: medium;
+    font-style: italic;
+    color: whitesmoke;
 }

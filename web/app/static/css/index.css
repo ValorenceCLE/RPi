@@ -67,3 +67,6 @@ a:hover, a:focus {
     font-weight: bold;
     transition: transform 0.3s;
 }
+#Header{
+    width: fit-content;
+}

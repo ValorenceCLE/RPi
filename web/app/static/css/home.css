@@ -6,9 +6,9 @@
 }
 .card {
     border-radius: 15px;
+    border-color: inherit;
     overflow: hidden;
     box-shadow: 0 3px 6px rgba(0,0,0,0.2);
-    background-color: whitesmoke;
 }
 .btn{
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
@@ -55,4 +55,7 @@ a:hover, a:focus {
     font-weight: bold;
     color: whitesmoke;
     text-align: center;
+}
+.badge{
+    font-style: italic;
 }

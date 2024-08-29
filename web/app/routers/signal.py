@@ -61,6 +61,7 @@ async def fetch_info(stream: str):
         return None
     
 # Evaluate the cellular data
+# Handle -9999 values as Errors
 async def evaluate_signal():
     data = await fetch_info("cellular_data")
     if not data:
