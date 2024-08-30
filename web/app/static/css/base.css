@@ -22,8 +22,6 @@ html, body {
 }
 .navbar {
     background-color: #212529;
-    top: 0;
-    margin: -1px;
 }
 .nav-link { 
     color: whitesmoke;
