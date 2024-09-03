@@ -1,69 +1,69 @@
-{% extends "base.html" %}
-{% block title %}{{title}}{% endblock %}
-{% block content %}
-<link rel="stylesheet" href="static/css/index.css">
-<div class="content-wrapper">
-    <main class="container mt-4">
-        <div class="row justify-content-center">
-            <div class="col-12 col-md-9">
-                <div class="card" id="Header">
-                    <div class="card-header text-center" id="Head">
-                        <h2 class="mb-0">{{ system_name }}</h2> <!-- DYNAMIC NAMING -->
-                    </div>
-                    <div class="card-body text-center text-dark">
-                        <p class="card-text text-dark opacity-75" id="Head-Content">{{ model }} | {{ serial_number }} | Uptime: {{ uptime }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="row justify-content-center mt-4 m-0">
-            <div class="col-10">
-                <div class="card p-3">
-                    <figure class="row justify-content-center m-0">
-                        {% for gauge in gauges %}
-                        <div class="col-4">
-                            <div id="container-{{gauge.id}}" class="chart-container"></div>
-                        </div>
-                        {% endfor %}
-                    </figure>
-                </div>
-            </div>
-        </div>
-        <div class="row justify-content-center mt-4">
-            <div class="col-10 mb-4">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h4 class="chart-title">{{ chart_name }}</h4>
-                        <!-- Dropdown for Time Frame Selection -->
-                        <div class="dropdown">
-                          <button class="btn dropdown-toggle" type="button" id="lineTimeFrameSelector" data-bs-toggle="dropdown" aria-expanded="false">
-                            Time Frame
-                          </button>
-                          <ul class="dropdown-menu" aria-labelledby="lineTimeFrameSelector">
-                            <li><a class="dropdown-item" data-value="15m">15 Minutes</a></li>
-                            <li><a class="dropdown-item" data-value="30m">30 Minutes</a></li>
-                            <li><a class="dropdown-item" data-value="1h">1 Hour</a></li>
-                            <li><a class="dropdown-item" data-value="3h">3 Hours</a></li>
-                            <li><a class="dropdown-item" data-value="6h">6 Hours</a></li>
-                          </ul>
+            {% extends "base.html" %}
+            {% block title %}{{title}}{% endblock %}
+            {% block content %}
+            <link rel="stylesheet" href="static/css/index.css">
+            <div class="content-wrapper">
+                <main class="container mt-4">
+                    <div class="row justify-content-center">
+                        <div class="col-12 col-md-9">
+                            <div class="card" id="Header">
+                                <div class="card-header text-center" id="Head">
+                                    <h2 class="mb-0">{{ system_name }}</h2> <!-- DYNAMIC NAMING -->
+                                </div>
+                                <div class="card-body text-center text-dark">
+                                    <p class="card-text text-dark opacity-75" id="Head-Content">{{ model }} | {{ serial_number }} | Uptime: {{ uptime }}</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <!-- Title Absolutely Centered Over the Webpage -->
-                    <div class="card-body">
-                        <div id="container-line-chart" class="chart-container"></div>
+                    <div class="row justify-content-center mt-4 m-0">
+                        <div class="col-10">
+                            <div class="card p-3">
+                                <figure class="row justify-content-center m-0">
+                                    {% for gauge in gauges %}
+                                    <div class="col-4">
+                                        <div id="container-{{gauge.id}}" class="chart-container"></div>
+                                    </div>
+                                    {% endfor %}
+                                </figure>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                    <div class="row justify-content-center mt-4">
+                        <div class="col-10 mb-4">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h4 class="chart-title">{{ chart_name }}</h4>
+                                    <!-- Dropdown for Time Frame Selection -->
+                                    <div class="dropdown">
+                                    <button class="btn dropdown-toggle" type="button" id="lineTimeFrameSelector" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Time Frame
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="lineTimeFrameSelector">
+                                        <li><a class="dropdown-item" data-value="15m">15 Minutes</a></li>
+                                        <li><a class="dropdown-item" data-value="30m">30 Minutes</a></li>
+                                        <li><a class="dropdown-item" data-value="1h">1 Hour</a></li>
+                                        <li><a class="dropdown-item" data-value="3h">3 Hours</a></li>
+                                        <li><a class="dropdown-item" data-value="6h">6 Hours</a></li>
+                                    </ul>
+                                    </div>
+                                </div>
+                                <!-- Title Absolutely Centered Over the Webpage -->
+                                <div class="card-body">
+                                    <div id="container-line-chart" class="chart-container"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+                <br>
+                <br>
             </div>
-        </div>
-    </main>
-    <br>
-    <br>
-</div>
-<script src="/static/js/gauge.js"></script>
-<script src="/static/js/line.js"></script>
-<script src="https://code.highcharts.com/10.3.3/highcharts.js"></script>
-<script src="https://code.highcharts.com/10.3.3/highcharts-more.js"></script>
-<script src="https://code.highcharts.com/10.3.3/modules/solid-gauge.js"></script>
-<script src="https://code.highcharts.com/10.3.3/modules/boost.js"></script>
+            <script src="/static/js/gauge.js" async></script>
+            <script src="/static/js/line.js" async></script>
+            <script src="https://code.highcharts.com/10.3.3/highcharts.js"></script>
+            <script src="https://code.highcharts.com/10.3.3/highcharts-more.js"></script>
+            <script src="https://code.highcharts.com/10.3.3/modules/solid-gauge.js"></script>
+            <script src="https://code.highcharts.com/10.3.3/modules/boost.js"></script>
 
-{% endblock %}
+            {% endblock %}

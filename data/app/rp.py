@@ -40,7 +40,8 @@ class INA260Router:
             watts = await self.get_watts()
             amps = await self.get_amps()
             data = f"Volts: {volts}, Watts: {watts}, Amps: {amps}"
-            if watts < 1:
+            #if watts < 1: This is the real check
+            if watts == 0: # Demo Check (Remove this line in production)
                 # Power Loss
                 await alert_publisher.publish_alert(
                     source=error_alert["source"],
@@ -50,7 +51,8 @@ class INA260Router:
                     message=error_alert["message"]
                 )
                 await self.stream_data(volts, watts, amps, timestamp)
-            elif watts < 2 or watts > 5:
+            #elif watts < 2 or watts > 5: This is the real check
+            elif watts < 0.1 or watts > 0.5: # Demo Check (Remove this line in production)
                 # Power is outside of an acceptable range
                 await alert_publisher.publish_alert(
                     source=warning_alert["source"],
