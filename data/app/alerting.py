@@ -4,6 +4,7 @@ import os
 from influxdb_client import InfluxDBClient, Point # type: ignore
 from influxdb_client.client.write_api import ASYNCHRONOUS, WriteOptions # type: ignore
 from influxdb_client import QueryApi # type: ignore
+from datetime import datetime
 class AlertPublisher:
     def __init__(self):
         self.redis_url = os.getenv('REDIS_URL')
@@ -38,7 +39,6 @@ class AlertPublisher:
                 .tag("source", alert_data["source"]) \
                 .tag("level", alert_data["level"]) \
                 .field("value", alert_data["value"]) \
-                .tag("message", alert_data["message"]) \
                 .time(alert_data["timestamp"])
             self.write_api.write(bucket=self.bucket, org=self.org, record=point)
         
@@ -57,9 +57,17 @@ class AlertPublisher:
         query_api = QueryApi(self.client)
         query = f'from(bucket: "{self.bucket}") |> range(start: -1h) |> filter(fn: (r) => r._measurement == "alerts")'
         tables = query_api.query(query, org=self.org)
+        counter = 0
         for table in tables:
+            counter += 1
             for row in table.records:
-                print(row.values)
+                
+                print(f"<-----Alert: {counter}----->")
+                print("Source:", row.values["source"])
+                print("Level:", row.values["level"])
+                print("Value:", row.values["_value"])
+                timestamp = row.values["_time"].strftime("%Y-%m-%d %H:%M:%S")
+                print("Timestamp:", timestamp)
 
 # Singleton instance of AlertPublisher
 alert_publisher = AlertPublisher()

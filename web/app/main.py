@@ -3,7 +3,7 @@ from fastapi.staticfiles import StaticFiles #type: ignore
 from fastapi.templating import Jinja2Templates #type: ignore
 from fastapi.responses import HTMLResponse, RedirectResponse #type: ignore
 import os
-from routers import relay, gauge, graph, signal
+from routers import relay, gauge, graph, signal, alerts
 import json
 
 app = FastAPI()
@@ -11,6 +11,7 @@ app.include_router(relay.router)
 app.include_router(gauge.router)
 app.include_router(graph.router)
 app.include_router(signal.router)
+app.include_router(alerts.router)
 
 # Load credentials directly from environment variables
 USER_USERNAME = os.getenv("USER_USERNAME")

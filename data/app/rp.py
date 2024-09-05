@@ -52,7 +52,7 @@ class INA260Router:
                 )
                 await self.stream_data(volts, watts, amps, timestamp)
             #elif watts < 2 or watts > 5: This is the real check
-            elif watts < 0.1 or watts > 0.5: # Demo Check (Remove this line in production)
+            elif watts < 0.1 or watts > 1: # Demo Check (Remove this line in production)
                 # Power is outside of an acceptable range
                 await alert_publisher.publish_alert(
                     source=warning_alert["source"],

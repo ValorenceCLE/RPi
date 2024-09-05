@@ -60,6 +60,7 @@ services:
       - REDIS_URL=redis://redis:6379
     env_file:
       - ./config/auth.env
+      - ./config/influxdb.env
 
 volumes:
   influxdb_data:

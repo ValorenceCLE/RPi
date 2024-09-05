@@ -1,6 +1,68 @@
 {% extends "base.html" %}
-{% block title %}{{title}}{% endblock %}
+{% block title %}Alerts{{title}}{% endblock %}
 {% block content %}
-
-<h1>Testing</h1>
+<link rel="stylesheet" href="/static/css/alerts.css">
+<div class="container my-4">
+    <div class="container my-4">
+        <!-- Advanced Search Card -->
+        <div class="card mb-4 bg-dark">
+            <div class="card-body">
+                <h4 class="card-title m-0" id="Title">Advanced Search</h4>
+                <form id="advancedSearchForm" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="startDate" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="startDate" name="startDate" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="endDate" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="endDate" name="endDate" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="alertLevel" class="form-label">Alert Level</label>
+                        <select class="form-select" id="alertLevel" name="alertLevel">
+                            <option value="">All</option>
+                            <option value="error">Error</option>
+                            <option value="warning">Warning</option>
+                            <option value="info">Info</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="alertSource" class="form-label">Source</label>
+                        <select class="form-select" id="alertSource" name="alertSource">
+                            <option value="">All Sources</option>
+                            <option value="system">System</option>
+                            <option value="router">Router</option>
+                            <option value="camera">Camera</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100" id="search">Search</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    
+        <!-- Alerts Table -->
+        <div class="table-responsive">
+            <table class="table table-dark table-bordered table-striped table-alerts">
+                <thead class="table-dark">
+                    <tr>
+                        <th scope="col">Timestamp</th>
+                        <th scope="col">Source</th>
+                        <th scope="col">Level</th>
+                        <th scope="col">Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Rows will be dynamically generated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="text-center">
+        <button id="loadMoreBtn" class="btn btn-secondary" style="display: none;">Load More</button>
+        <button id="resetBtn" class="btn btn-secondary" style="display: none;">Reset</button>
+    </div>
+</div>
+<script src="/static/js/alerts.js"></script>
 {% endblock %}
