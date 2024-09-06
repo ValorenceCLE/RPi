@@ -5,40 +5,92 @@ document.addEventListener('DOMContentLoaded', function() {
     let hasMore = true;
     let currentSort = { column: null, direction: 'asc' };
 
-    // Fetch alerts from the backend
+    // Capture form submission event for advanced search
+    document.getElementById('advancedSearchForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        // Get search form params
+        let startDate = document.getElementById('startDate').value;
+        let endDate = document.getElementById('endDate').value;
+        const alertLevel = document.getElementById('alertLevel').value;
+        const alertSource = document.getElementById('alertSource').value;
+
+        // Reset the offset
+        offset = 0;
+
+        // Fetch alerts with new search params
+        fetchSearchAlerts(startDate, endDate, alertLevel, alertSource);
+    });
+
+    // Fetch alerts from the backend (Initial load)
     async function fetchAlerts(loadMore = false) {
         try {
-            const params = new URLSearchParams({
-                limit: limit,
-                offset: offset
-            });
+            const params = new URLSearchParams({ limit, offset });
 
             const response = await fetch(`${apiEndpoint}?${params}`);
             const data = await response.json();
 
-            // Log the API response for debugging purposes
-            console.log("API response:", data);
-
-            // Check if data contains an alerts array, otherwise handle "No alerts" case
             if (data && Array.isArray(data.alerts) && data.alerts.length > 0) {
                 if (loadMore) {
                     appendToTable(data.alerts);
                 } else {
                     renderTable(data.alerts);
                 }
-                hasMore = data.has_more;  // Update hasMore status for Load More button
+                hasMore = data.has_more;
             } else if (!loadMore) {
-                // Only show the "No alerts available" message if it's the first load
                 showNoAlertsMessage();
                 hasMore = false;
             }
-
-            // Handle the Load More and Reset button visibility
             toggleLoadMoreOrResetButton();
         } catch (error) {
-            console.error("Error fetching alerts:", error);
+            showErrorMessage(error);
+            console.error('Error fetching alerts:', error);
         }
     }
+
+    // Fetch alerts from the backend with search params
+    async function fetchSearchAlerts(startDate = '', endDate = '', alertLevel = '', alertSource = ''){
+        try {
+            const params = new URLSearchParams({
+                limit: limit,
+                offset: offset,
+            });
+            // Conditionally add params
+            if (startDate) params.append('start', startDate);
+            if (endDate) params.append('end', endDate);
+            if (alertLevel) params.append('level', alertLevel);
+            if (alertSource) params.append('source', alertSource);
+            
+            const searchApiEndpoint = '/api/search_alerts';
+            const response = await fetch(`${searchApiEndpoint}?${params}`);
+            const data = await response.json();
+
+            if (data && Array.isArray(data.alerts) && data.alerts.length > 0) {
+                renderTable(data.alerts);
+                hasMore = data.has_more;
+            } else {
+                showNoAlertsMessage();
+                hasMore = false;
+            }
+            toggleLoadMoreOrResetButton();
+        } catch (error) {
+            showErrorMessage(error);
+            console.error('Error fetching searched alerts:', error);
+        }
+    }
+    // Show Error Message
+    function showErrorMessage(message){
+        const tableBody = document.querySelector("table tbody");
+        tableBody.innerHTML = "";  // Clear the table if needed
+
+        const errorRow = document.createElement("tr");
+        const errorCell = document.createElement("td");
+        errorCell.colSpan = 4;  // Span across all columns
+        errorCell.textContent = message || "An error occurred while fetching alerts!";
+        errorCell.classList.add("text-center", "text-danger");  // Center the text
+        errorRow.appendChild(errorCell);
+        tableBody.appendChild(errorRow);
+    } 
 
     // Show a "No Alerts Available" message only on the initial load
     function showNoAlertsMessage() {
@@ -48,61 +100,58 @@ document.addEventListener('DOMContentLoaded', function() {
         const noAlertsRow = document.createElement("tr");
         const noAlertsCell = document.createElement("td");
         noAlertsCell.colSpan = 4;  // Span across all columns
-        noAlertsCell.textContent = "No alerts available.";
+        noAlertsCell.textContent = "No alerts during this time!";
         noAlertsCell.classList.add("text-center");  // Center the text
         noAlertsRow.appendChild(noAlertsCell);
         tableBody.appendChild(noAlertsRow);
     }
 
-    // Toggle between Load More and Reset button based on hasMore
+    // Load more and Reset button Logic
     function toggleLoadMoreOrResetButton() {
         const loadMoreButton = document.getElementById('loadMoreBtn');
         const resetButton = document.getElementById('resetBtn');
 
         if (hasMore) {
-            loadMoreButton.style.display = 'block';  // Show "Load More" button
-            resetButton.style.display = 'none';  // Hide "Reset" button
+            loadMoreButton.style.display = 'block';
+            resetButton.style.display = 'none';
         } else {
-            loadMoreButton.style.display = 'none';  // Hide "Load More" button
-            resetButton.style.display = 'block';  // Show "Reset" button
+            loadMoreButton.style.display = 'none';
+            resetButton.style.display = 'block';
+        }
+        if (!hasMore && !alert.length) {
+            loadMoreButton.style.display = 'none';
+            resetButton.style.display = 'none';
         }
     }
 
     // Function to reset the table to the first 10 alerts
-    function resetTable() {
+    function resetTable(){
         const tableBody = document.querySelector("table tbody");
-        const rows = Array.from(tableBody.querySelectorAll('tr'));
-
-        // Keep only the first 10 rows, remove the rest
+        const rows = tableBody.querySelectorAll('tr');
         rows.forEach((row, index) => {
-            if (index >= 10) {
+            if (index >= 10){
                 row.remove();
             }
         });
-
-        // Set hasMore back to true so the user can load more again
         offset = 10;
         hasMore = true;
-        toggleLoadMoreOrResetButton();  // Show the "Load More" button again
+        toggleLoadMoreOrResetButton();
     }
-
-    function renderTable(alerts) {
+    function renderTable(alerts){
         const tableBody = document.querySelector("table tbody");
-        tableBody.innerHTML = "";  // Clear table before rendering new rows
-
+        tableBody.innerHTML = "";  // Clear the table if needed
         appendToTable(alerts);
     }
 
-    // Append alerts to the table (used for the "Load More" feature)
-    function appendToTable(alerts) {
+    // Append alerts to the table (used for the "Load More" functionality)
+    function appendToTable(alerts){
         const tableBody = document.querySelector("table tbody");
-
         alerts.forEach(alert => {
             const row = document.createElement("tr");
 
-            // Timestamp
+            // Timestamp 
             const timestampCell = document.createElement("td");
-            timestampCell.textContent = new Date(alert.timestamp).toLocaleString();  // Format timestamp
+            timestampCell.textContent = new Date(alert.timestamp).toLocaleString();
             row.appendChild(timestampCell);
 
             // Source
@@ -121,20 +170,15 @@ document.addEventListener('DOMContentLoaded', function() {
             valueCell.textContent = alert.value;
             row.appendChild(valueCell);
 
-            // Append the row to the table
             tableBody.appendChild(row);
         });
-
-        // After appending alerts, check if there are more to load
         toggleLoadMoreOrResetButton();
     }
-
     // Sort the table by column (timestamp, source, level, or value)
     function sortTable(columnIndex, type = 'string') {
         const table = document.querySelector("table");
         const rows = Array.from(table.querySelectorAll("tbody tr"));
         
-        // Remove previous sort direction arrows
         document.querySelectorAll("th").forEach(th => th.classList.remove("sorted-asc", "sorted-desc"));
     
         const sortedRows = rows.sort((a, b) => {
@@ -150,48 +194,39 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     
-        // If sorting direction is descending, reverse the sorted array
         if (currentSort.column === columnIndex && currentSort.direction === 'asc') {
             sortedRows.reverse();
             currentSort.direction = 'desc';
-            document.querySelectorAll("th")[columnIndex].classList.add("sorted-desc");  // Add descending arrow
+            document.querySelectorAll("th")[columnIndex].classList.add("sorted-desc");
         } else {
             currentSort.direction = 'asc';
-            document.querySelectorAll("th")[columnIndex].classList.add("sorted-asc");  // Add ascending arrow
+            document.querySelectorAll("th")[columnIndex].classList.add("sorted-asc");
         }
     
         currentSort.column = columnIndex;
     
-        // Remove existing rows and append sorted rows
         const tableBody = table.querySelector("tbody");
         tableBody.innerHTML = "";
         sortedRows.forEach(row => tableBody.appendChild(row));
     }
-
-    // Add click event listeners to the table headers for sorting
+    // Add click event listener to the table headers
     document.querySelectorAll("th").forEach((header, index) => {
         header.addEventListener("click", () => {
-            if (index === 0) {  // Timestamp column (Date sorting)
+            if (index === 0) {
                 sortTable(index, 'date');
-            } else if (index === 3) {  // Value column (String sorting)
+            } else if (index === 3) {
                 sortTable(index, 'string');
-            } else {  // String sorting for Source and Level columns
+            } else {
                 sortTable(index, 'string');
             }
         });
     });
-
-    // Load More button click event
-    document.getElementById('loadMoreBtn').addEventListener('click', function () {
-        offset += limit;  // Increment the offset for pagination
-        fetchAlerts(true);  // Load more alerts
+    document.getElementById('loadMoreBtn').addEventListener('click', function() {
+        offset += limit;
+        fetchAlerts(true);
     });
-
-    // Reset button click event
-    document.getElementById('resetBtn').addEventListener('click', function () {
-        resetTable();  // Reset the table back to the first 10 alerts
+    document.getElementById('resetBtn').addEventListener('click', function() {
+        resetTable();
     });
-
-    // Initial fetch of alerts
     fetchAlerts();
 });
