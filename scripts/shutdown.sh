@@ -27,11 +27,11 @@ fi
 # Step 2: Clean up old log file or truncate if it's too large
 if [ $(stat -c%s "$LOGFILE") -gt 1000000 ]; then
     truncate -s 0 "$LOGFILE"
-    echo "$(date): Log file was too large and was truncated." >> "$LOGFILE"
+    echo "Log file was too large and was truncated." >> "$LOGFILE"
 fi
 
 # Log the start of the script
-echo "$(date): Shutdown script started." >> "$LOGFILE"
+echo "Shutdown script started." >> "$LOGFILE"
 
 # Step 2: Perform system checks
 echo "Disk space check:" >> $LOGFILE
@@ -72,5 +72,5 @@ else
 fi
 
 # Step 6: Reboot the system
-echo "Rebooting the system at $(date)" >> $LOGFILE
-#sudo reboot
+echo "Rebooting the system" >> $LOGFILE
+sudo reboot
