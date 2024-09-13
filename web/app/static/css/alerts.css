@@ -23,14 +23,12 @@ td, th {
     font-weight: bolder;
     font-size: large;
 }
-
 .alert-level.warning {
     color: yellow;
     font-weight: bolder;
     font-size: large;
     
 }
-
 .alert-level.info {
     color: blue;
     font-weight: bolder;
@@ -55,9 +53,21 @@ th.sorted-desc::after {
 }
 #Title {
     font-weight: bold;
-    color: whitesmoke;
+    color: black;
     text-align: center;
 }
 .card{
     border-radius: 15px;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+}
+.btn{
+    border-radius: 10px;
+    font-weight: bold;
+}
+.table-responsive{
+    overflow-x: auto;
+}
+.form-select, .form-label, .form-control, option{
+    font-weight: bold;
+    font-size: large;
 }

@@ -38,11 +38,14 @@ a:hover, a:focus {
     cursor: not-allowed;
 }
 .chart-container {
-    width: 110%;
+    width: 100%;  /* Adjust the width to be 100% of the parent container */
     height: 12rem;
     background-color: whitesmoke; /* Match the card's background color */
     font-weight: bolder;
     font-size: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;  /* Centers the gauge both horizontally and vertically */
 }
 #clock {
     font-family: 'Roboto', sans-serif;
@@ -58,4 +61,9 @@ a:hover, a:focus {
 }
 .badge{
     font-style: italic;
+}
+#gauge-container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
