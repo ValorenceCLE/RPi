@@ -82,7 +82,11 @@ async def parse_router_info():
             'Serial_Number': serial,  # Plain string without colons
             'Sensor_ID': serial + '-INA260'
         }
-    return None
+    return {
+        'Model': 'Error retrieving model',
+        'Serial_Number': 'Error retrieving serial',
+        'Sensor_ID': 'Error retrieving sensor ID'
+    }
 
 async def parse_camera_info():
     camera_target = TARGETS['Camera']
@@ -105,7 +109,12 @@ async def parse_camera_info():
             'Serial_Number': serial,
             'Sensor_ID': serial + '-INA260'
         }
-    return None
+    return {
+        'Model': 'Error retrieving model',
+        'Serial_Number': 'Error retrieving serial',
+        'Sensor_ID': 'Error retrieving sensor ID'
+    }
+
 
 async def start_up(path=PATH):
     system_info = {

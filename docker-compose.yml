@@ -23,6 +23,7 @@ services:
     volumes:
       - ./device_info:/app/device_info
     privileged: true
+    restart: always
     environment:
       - INFLUXDB_URL=http://influxdb:8086
       - REDIS_URL=redis://redis:6379
@@ -46,6 +47,7 @@ services:
   webapp:
     build: ./web
     privileged: true
+    restart: always
     ports:
       - "8000:8000"
     depends_on:
