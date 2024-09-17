@@ -5,10 +5,10 @@ from datetime import datetime, timedelta
 router = APIRouter()
 
 RELAYS = {
-    "router": 13,  # GPIO pin for Router
-    "camera": 17,  # GPIO pin for Camera
-    "strobe": 5,  # GPIO pin for Strobe
-    "fan": 27     # GPIO pin for Fan
+    "router": 21,  # GPIO pin for Router
+    "camera": 20,  # GPIO pin for Camera
+    "strobe": 16,  # GPIO pin for Strobe
+    "fan": 12     # GPIO pin for Fan
 }
 
 # Setup GPIO

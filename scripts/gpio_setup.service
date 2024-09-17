@@ -1,0 +1,15 @@
+[Unit]
+Description=GPIO Setup Service
+After=local-fs.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /home/admin/MyDockerProject/scripts/gpio_setup.sh
+User=root
+Environment=HOME=/root
+StandardOutput=append:/home/admin/startup.log
+StandardError=append:/home/admin/startup.log
+
+[Install]
+WantedBy=basic.target
