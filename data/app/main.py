@@ -11,16 +11,16 @@ from dashboard import Dashboard_Setup
 from logging_setup import logger
 
 async def main():
-    await logger.info("Application started 42.")
-    
+    await logger.info("Application started")
     
     # Initial Start up to gather System Info
     await start_up() # Set up System Info
-    await asyncio.sleep(1) # Make sure System Info is set up
     
     # Initialize Dashboard
     dashboard = Dashboard_Setup()
     await dashboard.run()
+    dashboard.close()
+    await asyncio.sleep(2) # Make sure System Info is set up
     
     # Initialize collection scripts
     net = NetworkPing() # Network Metrics

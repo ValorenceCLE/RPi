@@ -7,13 +7,13 @@ import time
 from alerting import alert_publisher
 import aiofiles #type: ignore
 import json
+from logging_setup import logger
 
 class AHT10:
     def __init__(self, i2c_bus=1, address=0x38):
         try:
             self.bus = smbus2.SMBus(i2c_bus)
         except Exception as e:
-            print(f"Failed to initialize I2C bus: {e}")
             self.bus = None
         self.address = address
         if self.bus:
@@ -71,7 +71,7 @@ class AHT10:
             else:
                 await self.stream_data(temperature=temperature, humidity=humidity, timestamp=timestamp)
         except BaseException as e:
-            print(f"Error processing data: {e}")
+            await logger.error(f"Error processing data: {e}")
 
     async def stream_data(self, temperature, humidity, timestamp):
         data = {
@@ -86,9 +86,3 @@ class AHT10:
             await self.process_data()
             await asyncio.sleep(self.collection_interval)
 
-if __name__ == "__main__":
-    env = AHT10()
-    if env.bus:  # Ensure the bus is initialized before running
-        asyncio.run(env.run())
-    else:
-        print("Failed to initialize the sensor, exiting.")

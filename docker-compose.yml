@@ -22,7 +22,7 @@ services:
     #image: data_collection:latest
     volumes:
       - ./logs:/var/log/app 
-      - ./device_info:/app/device_info
+      - ./device_info:/device_info
     privileged: true
     restart: always
     environment:
@@ -64,7 +64,7 @@ services:
     volumes:
       - ./logs:/var/log/app 
       - ./web/app:/app
-      - ./device_info:/app/device_info
+      - ./device_info:/device_info
     environment:
       - LOG_FILE=/var/log/app/web.log
       - INFLUXDB_URL=http://influxdb:8086
@@ -80,6 +80,5 @@ services:
 
 volumes:
   influxdb_data:
-  device_info:
   logs:
     driver: local

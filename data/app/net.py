@@ -3,7 +3,7 @@ from datetime import datetime
 import asyncio
 import aioping # type: ignore
 from redis.asyncio import Redis #type: ignore
-
+from logging_setup import logger
 # This script also needs better error handling
 # Also check the packet loss logic. Some of the data being shown in the database doesnt make sense for data point that is supposed to be a %
 
@@ -27,7 +27,7 @@ class NetworkPing:
             await self.stream_data(avg_rtt, min_rtt, max_rtt, packet_loss_percent)
 
         except Exception as e:
-            print(f"Failed to perform ping test: {e}")
+            await logger.error(f"Failed to perform ping test: {e}")
             
     async def ping_host(self):
         try:
@@ -52,9 +52,6 @@ class NetworkPing:
             await self.run_ping_test()
             await asyncio.sleep(self.collection_interval)
             
-if __name__ == "__main__":
-    np = NetworkPing()
-    asyncio.run(np.run())
 
         
 

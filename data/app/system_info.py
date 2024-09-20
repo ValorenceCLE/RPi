@@ -1,13 +1,15 @@
+import os
 import json
 import asyncio
 import aiosnmp  # type: ignore
 import aiofiles  # type: ignore
+from logging_setup import logger
 
 # This script also needs better error handling if the router or camera is offline or for some reason not responding.
 
 MODEL_OID = '.1.3.6.1.2.1.1.1.0'
 COMMUNITY = 'public'
-PATH = '/app/device_info/system_info.json'
+PATH = '/device_info/system_info.json'
 
 TARGETS = {
     'Router': {
@@ -33,7 +35,7 @@ async def get_snmp_data(host, oid, community=COMMUNITY):
                 if varbind.oid == oid:
                     return varbind.value
     except Exception as e:
-        print(f"SNMP request failed: {e}")
+        await logger.error(f"SNMP request failed: {e}")
         return None
 
 async def rpi_serial():
@@ -43,7 +45,7 @@ async def rpi_serial():
                 if line.startswith('Serial'):
                     return line.split(':')[-1].strip().upper()
     except IOError as e:
-        print(f"Failed to get RPi Serial Number: {e}")
+        await logger.error(f"Failed to get RPi Serial Number: {e}")
         return None
 
 async def update_rpi_info():

@@ -7,7 +7,7 @@ from redis.asyncio import Redis # type: ignore
 import board # type: ignore
 import adafruit_ina260 # type: ignore
 from alerting import alert_publisher
-
+from logging_setup import logger
 
 class INA260Camera:
     def __init__(self):
@@ -65,7 +65,7 @@ class INA260Camera:
             else:
                 await self.stream_data(volts, watts, amps, timestamp)
         except BaseException as e:
-            print(f"Error processing data: {e}")
+            await logger.error(f"Error processing data: {e}")
     
     async def stream_data(self, volts, watts, amps, timestamp):
         data = {
@@ -81,6 +81,3 @@ class INA260Camera:
             await self.process_data()
             await asyncio.sleep(self.collection_interval)
             
-if __name__ == "__main__":
-    cp = INA260Camera()
-    asyncio.run(cp.run())

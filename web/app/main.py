@@ -20,7 +20,7 @@ ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 DEMO_PASSWORD = os.getenv("DEMO_PASSWORD")
 
-SYSTEM_INFO_PATH = '/app/device_info/system_info.json'
+SYSTEM_INFO_PATH = '/device_info/system_info.json'
 with open(SYSTEM_INFO_PATH, 'r') as file:
     data = json.load(file)
     

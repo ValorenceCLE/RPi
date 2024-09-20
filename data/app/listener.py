@@ -2,66 +2,73 @@ import asyncio
 from redis.asyncio import Redis  # type: ignore
 import os
 from datetime import datetime
-from influxdb_client import InfluxDBClient, Point, WritePrecision  # type: ignore
-from influxdb_client.client.write_api import ASYNCHRONOUS, WriteOptions  # type: ignore
+from influxdb_client import Point # type: ignore
+from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync # type: ignore
+from influxdb_client.client.write_api_async import WriteApiAsync # type: ignore
+from logging_setup import logger # Custom Async Logger ==> logging_setup.py
 
 class Processor:
     def __init__(self, streams):
-        print("Initializing Data Save...")
+        """
+        Initialize the Listener class.
+
+        Args:
+            streams (list): A list of stream names to listen to.
+                Passed in main.py
+        """
         self.token = os.getenv('DOCKER_INFLUXDB_INIT_ADMIN_TOKEN')
         self.org = os.getenv('DOCKER_INFLUXDB_INIT_ORG')
         self.bucket = os.getenv('DOCKER_INFLUXDB_INIT_BUCKET')
         self.url = os.getenv('INFLUXDB_URL')
-        print(f"Connecting to InfluxDB at {self.url}")
-        self.client = InfluxDBClient(url=self.url, token=self.token, org=self.org)
-        self.write_api = self.client.write_api(write_options=WriteOptions(write_type=ASYNCHRONOUS, batch_size=500, flush_interval=10_000))
         self.redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
-        print(f"Connecting to Redis at {self.redis_url}")
         self.redis = Redis.from_url(self.redis_url)
         self.group_name = 'data_group'
         self.consumer_name = 'influxdb'
         self.collection_interval = 300  # Pull data every 5 minutes
         self.streams = streams
-
+        self.client = None
+        self.write_api = None
+        
+    # Async Init Function
+    async def async_init(self):
+        if not self.client:
+            self.client = InfluxDBClientAsync(url=self.url, token=self.token, org=self.org)
+            self.write_api = WriteApiAsync(self.client)
+    
     async def setup_groups(self):
+        # Create a consumer group for each stream
         for stream in self.streams:
             try:
                 await self.redis.xgroup_create(stream, self.group_name, id='0', mkstream=True)
-                print(f"Group {self.group_name} created for {stream}")
             except Exception as e:
                 if "BUSYGROUP" not in str(e):
-                    print(f"Error creating group {self.group_name} for {stream}: {e}")
+                    await logger.critical(f"Error creating group {self.group_name} for {stream}: {e}")
                 else:
-                    print(f"Group {self.group_name} already exists for {stream}")
+                    await logger.debug(f"Group {self.group_name} already exists for {stream}")
 
-    async def read_streams(self):
-        streams = {stream: '>' for stream in self.streams}
+    async def read_single_stream(self, stream_name):
         try:
             response = await self.redis.xreadgroup(
                 groupname=self.group_name,
                 consumername=self.consumer_name,
-                streams=streams,
+                streams={stream_name: '>'},
                 count=10,
                 block=1000
             )
-            print(f"Read response: {response}")
             return response
         except Exception as e:
-            print(f"Error reading from streams: {e}")
+            await logger.error(f"Error reading stream {stream_name}: {e}")
             return []
 
     async def write_to_influxdb(self, points):
         try:
-            print(f"Writing points: {points}")
-            self.write_api.write(bucket=self.bucket, org=self.org, record=points)
-            print("Write to InfluxDB successful")
+            await self.write_api.write(bucket=self.bucket, org=self.org, record=points)
         except Exception as e:
-            print(f"Error writing to InfluxDB: {e}")
+            await logger.error(f"Error writing to InfluxDB: {e}")
 
-    def create_points(self, stream_name, messages):
+    async def create_points(self, stream_name, messages):
         points = []
         for message_id, message in messages:
-            print(f"Processing message {message_id} from stream {stream_name}: {message}")
             try:
                 timestamp = message[b'timestamp'].decode() if b'timestamp' in message else datetime.utcnow().isoformat()
                 data = {}
@@ -74,27 +81,32 @@ class Processor:
                     if key != 'timestamp':
                         point = point.field(key, value)
                 points.append(point)
-                print(f"Created point: {point}")
             except Exception as e:
-                print(f"Error processing message {message_id}: {e}")
+                await logger.error(f"Error processing message {message_id}: {e}")
         return points
 
+    async def process_single_stream(self, stream_name):
+        response = await self.read_single_stream(stream_name)
+        if response:
+            for stream_name, messages in response:
+                points = await self.create_points(stream_name, messages)
+                if points:
+                    await self.write_to_influxdb(points)
+    
     async def process_streams(self):
+        """
+        Process all streams concurrently.
+        Each stream is handled by its own task, which runs in parallel using asyncio.
+        After processing all streams, wait for `self.collection_interval` before the next iteration.
+        """
+        await self.async_init()
         await self.setup_groups()
         while True:
-            now = datetime.utcnow()
-            print(f"Starting a new iteration at {now}")
-            response = await self.read_streams()
-            if response:
-                for stream_name, messages in response:
-                    points = self.create_points(stream_name, messages)
-                    if points:
-                        await self.write_to_influxdb(points)
-            later = datetime.utcnow()
-            duration = (later - now).total_seconds()
-            print(f"Finished processing. Duration: {duration} seconds. Sleeping for {self.collection_interval} seconds.")
             await asyncio.sleep(self.collection_interval)
+            tasks = [asyncio.create_task(self.process_single_stream(stream)) for stream in self.streams]
+            await asyncio.gather(*tasks)
 
+            
 if __name__ == "__main__":
     streams = ['network_data', 'camera_data', 'router_data', 'environment_data']
     reader = Processor(streams)
