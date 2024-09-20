@@ -8,9 +8,11 @@ from cell import CellularMetrics
 from system_info import start_up
 from listener import Processor
 from dashboard import Dashboard_Setup
-
+from logging_setup import logger
 
 async def main():
+    await logger.info("Application started 42.")
+    
     
     # Initial Start up to gather System Info
     await start_up() # Set up System Info

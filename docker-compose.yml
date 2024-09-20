@@ -21,14 +21,21 @@ services:
     build: ./data
     #image: data_collection:latest
     volumes:
+      - ./logs:/var/log/app 
       - ./device_info:/app/device_info
     privileged: true
     restart: always
     environment:
+      - LOG_FILE=/var/log/app/data.log
       - INFLUXDB_URL=http://influxdb:8086
       - REDIS_URL=redis://redis:6379
     env_file:
       - ./config/influxdb.env
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
     depends_on:
       influxdb:
           condition: service_healthy
@@ -55,15 +62,24 @@ services:
       - redis
       - data_collection
     volumes:
+      - ./logs:/var/log/app 
       - ./web/app:/app
       - ./device_info:/app/device_info
     environment:
+      - LOG_FILE=/var/log/app/web.log
       - INFLUXDB_URL=http://influxdb:8086
       - REDIS_URL=redis://redis:6379
     env_file:
       - ./config/auth.env
       - ./config/influxdb.env
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
 volumes:
   influxdb_data:
   device_info:
+  logs:
+    driver: local

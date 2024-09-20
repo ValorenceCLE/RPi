@@ -2,3 +2,4 @@ config/
 device_info/
 __pycache__/
 .venv/
+logs/
