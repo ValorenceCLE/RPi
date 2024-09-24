@@ -3,3 +3,4 @@ device_info/
 __pycache__/
 .venv/
 logs/
+app_data/

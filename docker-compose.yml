@@ -65,6 +65,7 @@ services:
       - ./logs:/var/log/app 
       - ./web/app:/app
       - ./device_info:/device_info
+      - ./app_data:/app_data
     environment:
       - LOG_FILE=/var/log/app/web.log
       - INFLUXDB_URL=http://influxdb:8086
