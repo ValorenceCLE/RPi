@@ -36,7 +36,9 @@ async def login(
     response.set_cookie(
         key="username",
         value=username,
-        max_age=3600
+        max_age=3600,
+        httponly=True,
+        samesite="Lax"
     )
     return response
 
