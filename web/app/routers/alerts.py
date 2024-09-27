@@ -2,17 +2,18 @@ from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync  # 
 from influxdb_client.client.query_api_async import QueryApiAsync  # type: ignore
 from fastapi import APIRouter, HTTPException, Query  # type: ignore
 from typing import List, Optional
-import os
 from datetime import datetime
+from core.logger import logger
+from core.config import settings
 
 router = APIRouter()
 
 class InfluxService:
     def __init__(self):
-        self.token = os.getenv('DOCKER_INFLUXDB_INIT_ADMIN_TOKEN')
-        self.org = os.getenv('DOCKER_INFLUXDB_INIT_ORG')
-        self.bucket = os.getenv('DOCKER_INFLUXDB_INIT_BUCKET')
-        self.url = os.getenv('INFLUXDB_URL')
+        self.token = settings.TOEKN
+        self.org = settings.ORG
+        self.bucket = settings.BUCKET
+        self.url = settings.INFLUXDB_URL
         self.client = InfluxDBClientAsync(url=self.url, token=self.token, org=self.org)
         self.query_api = QueryApiAsync(self.client)
 
@@ -32,7 +33,7 @@ class InfluxService:
             has_more = len(alerts) > limit
             return alerts[:limit], has_more
         except Exception as e:
-            print(f"Error fetching alerts: {e}")
+            await logger.error(f"Error fetching alerts: {e}")
             return [], False
 
     # New Search Function to dynamically build the query
@@ -74,7 +75,7 @@ class InfluxService:
             has_more = len(alerts) > limit
             return alerts[:limit], has_more
         except Exception as e:
-            print(f"Error fetching alerts: {e}")
+            await logger.error(f"Error fetching alerts: {e}")
             return [], False
 
 influx_service = InfluxService()

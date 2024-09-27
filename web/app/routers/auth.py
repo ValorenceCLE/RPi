@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Request, Form, Depends, Response, status # type: ignore
+from fastapi import APIRouter, Request, Form, Depends, status # type: ignore
 from fastapi.responses import RedirectResponse, HTMLResponse # type: ignore
-from core.security import verify_password, get_current_user
+from core.security import verify_password
 from core.config import settings
 from fastapi.templating import Jinja2Templates # type: ignore
 

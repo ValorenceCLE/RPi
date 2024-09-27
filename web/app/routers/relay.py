@@ -1,15 +1,11 @@
 from fastapi import APIRouter, HTTPException #type: ignore
 import RPi.GPIO as GPIO
 import asyncio
-from datetime import datetime, timedelta
-router = APIRouter()
+from datetime import datetime
+from core.config import settings
 
-RELAYS = {
-    "router": 21,  # GPIO pin for Router
-    "camera": 20,  # GPIO pin for Camera
-    "strobe": 16,  # GPIO pin for Strobe
-    "fan": 12     # GPIO pin for Fan
-}
+router = APIRouter()
+RELAYS = settings.GPIO_PINS
 
 # Setup GPIO
 GPIO.setmode(GPIO.BCM)

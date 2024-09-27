@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException #type: ignore
 from datetime import datetime, timedelta
 from redis.asyncio import Redis #type:ignore
-import os
+from core.config import settings
+from core.logger import logger
 
 router = APIRouter()
-
-redis = Redis.from_url(os.getenv('REDIS_URL', 'redis://redis:6379'))
+redis = Redis.from_url(settings.REDIS_URL)
 
 # Helper function to fetch data from Redis Streams
 async def fetch_data_from_stream(stream_name: str, start_time: str, end_time: str):
@@ -13,7 +13,7 @@ async def fetch_data_from_stream(stream_name: str, start_time: str, end_time: st
         response = await redis.xrange(stream_name, start_time, end_time)
         return response
     except Exception as e:
-        print(f"Error fetching data from Redis: {e}")
+        await logger.error(f"Error fetching data from Redis: {e}")
         return []
 
 # Helper function to aggregate data
@@ -22,8 +22,6 @@ def aggregate_data(data, interval_seconds: int):
     current_bucket = None
     sum_values = None
     count = 0
-    
-    print(f"Starting aggregation with interval: {interval_seconds} seconds")
 
     for item in data:
         timestamp = item[0].decode()  # Decode the timestamp
@@ -54,20 +52,13 @@ def aggregate_data(data, interval_seconds: int):
             "timestamp": current_bucket.isoformat() + ".000",
             **avg_values
         })
-    
-    print(f"Aggregation complete. Total aggregated points: {len(aggregated_data)}")
     return aggregated_data
 
 
 @router.get("/{page_name}/data/{time_frame}")
 async def get_aggregated_data(page_name: str, time_frame: str):
     # Map page names to Redis streams
-    stream_map = {
-        "system": "system_data",
-        "router": "router_data",
-        "camera": "camera_data",
-        "network": "cellular_data"
-    }
+    stream_map = settings.STREAM_MAP
     stream_name = stream_map.get(page_name)
     if not stream_name:
         raise HTTPException(status_code=400, detail="Invalid Page Name")
@@ -94,21 +85,17 @@ async def get_aggregated_data(page_name: str, time_frame: str):
     
     start_time_str = str(int(start_time.timestamp() * 1000))
     end_time_str = str(int(end_time.timestamp() * 1000))
-
-    print(f"Fetching data for {page_name} from {start_time_str} to {end_time_str} with time frame {time_frame}")
     
+    # Fetch data from Redis
     raw_data = await fetch_data_from_stream(stream_name, start_time_str, end_time_str)
     
     if not raw_data:
-        print(f"No data available for stream {stream_name}")
+        await logger.info(f"No data available for stream {stream_name}")
         return {"error": "No data available"}
-    
-    print(f"Fetched {len(raw_data)} entries from stream {stream_name}")
 
     # Aggregate data only if the interval is greater than 30 seconds
     if interval_seconds > 30:
         aggregated_data = aggregate_data(raw_data, interval_seconds)
-        print(f"Returning {len(aggregated_data)} aggregated data points")
     else:
         # No aggregation needed, just format the raw data
         aggregated_data = [
@@ -117,7 +104,5 @@ async def get_aggregated_data(page_name: str, time_frame: str):
                 **{k.decode(): round(float(v.decode()), 1) for k, v in item[1].items() if k.decode() != "timestamp"}  # Skip timestamp field
             }
             for item in raw_data
-        ]
-        print(f"Returning {len(aggregated_data)} raw data points")
-    
+        ]    
     return {"data": aggregated_data}
