@@ -2,7 +2,7 @@ import json
 import asyncio
 import aiosnmp  # type: ignore
 import aiofiles  # type: ignore
-from logging_setup import logger
+from utils.logging_setup import logger
 
 # This script also needs better error handling if the router or camera is offline or for some reason not responding.
 

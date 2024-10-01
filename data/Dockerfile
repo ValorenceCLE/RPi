@@ -34,4 +34,4 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY ./app /app
 
 # Command to run the application
-CMD ["scalene", "--outfile", "/profiles/data_profile.txt", "--profile-interval", "0.1", "main.py"]
+CMD ["python3", "main.py"]

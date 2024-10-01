@@ -1,11 +1,12 @@
 import asyncio
 from redis.asyncio import Redis  # type: ignore
-import os
 from datetime import datetime
 from influxdb_client import Point # type: ignore
 from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync # type: ignore
 from influxdb_client.client.write_api_async import WriteApiAsync # type: ignore
-from logging_setup import logger # Custom Async Logger ==> logging_setup.py
+from utils.logging_setup import logger # Custom Async Logger ==> logging_setup.py
+from utils.config import settings
+from utils.clients import InfluxWriter, RedisClient
 
 class Processor:
     def __init__(self, streams):
@@ -16,24 +17,21 @@ class Processor:
             streams (list): A list of stream names to listen to.
                 Passed in main.py
         """
-        self.token = os.getenv('DOCKER_INFLUXDB_INIT_ADMIN_TOKEN')
-        self.org = os.getenv('DOCKER_INFLUXDB_INIT_ORG')
-        self.bucket = os.getenv('DOCKER_INFLUXDB_INIT_BUCKET')
-        self.url = os.getenv('INFLUXDB_URL')
-        self.redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
-        self.redis = Redis.from_url(self.redis_url)
+        self.streams = streams
         self.group_name = 'data_group'
         self.consumer_name = 'influxdb'
+        self.bucket = settings.BUCKET
+        self.org = settings.ORG
         self.collection_interval = 300  # Pull data every 5 minutes
-        self.streams = streams
+        self.batch_points = []
         self.client = None
         self.write_api = None
         
     # Async Init Function
     async def async_init(self):
-        if not self.client:
-            self.client = InfluxDBClientAsync(url=self.url, token=self.token, org=self.org)
-            self.write_api = WriteApiAsync(self.client)
+        self.redis = await RedisClient.get_instance()
+        self.write_api = await InfluxWriter.get_instance()
+        await self.setup_groups()
     
     async def setup_groups(self):
         # Create a consumer group for each stream

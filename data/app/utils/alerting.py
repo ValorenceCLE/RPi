@@ -4,7 +4,7 @@ from redis.asyncio import Redis #type: ignore
 import json
 import os
 from influxdb_client import Point # type: ignore
-from logging_setup import logger
+from utils.logging_setup import logger
 
 class AlertPublisher:
     def __init__(self):
