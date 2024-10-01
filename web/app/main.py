@@ -1,28 +1,22 @@
 from fastapi import FastAPI #type: ignore
 from fastapi.staticfiles import StaticFiles #type: ignore
 from starlette.middleware.gzip import GZipMiddleware #type: ignore
+from contextlib import asynccontextmanager
 from core.middleware import LoggingMiddleware
 from routers import relay, gauge, graph, signal, alerts, auth, user, admin
 from core.startup import on_startup
 from core.logger import logger
-import cProfile
 
-app = FastAPI()
-PROFILING = True
 
-if PROFILING:
-    profiler = cProfile.Profile()
-
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     await logger.setup(log_file="web.log")
     await on_startup(app)
     await logger.info("App started")
-    if PROFILING:
-        global profiler
-        profiler.enable()
-        await logger.info("Profiler enabled")
+    yield
+    await logger.info("Shutting down...")
     
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -38,12 +32,6 @@ app.include_router(admin.router)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-
-@app.on_event("shutdown")
-async def shutdown():
-    await logger.info("Shutting down...")
-    if PROFILING:
-        global profiler
-        profiler.disable()
-        await logger.info("Profiler disabled, dumping stats...")
-        profiler.dump_stats("/profiling_results/profiling_results.prof")
+if __name__ == "__main__":
+    import uvicorn #type: ignore
+    uvicorn.run(app, host="0.0.0.0", port=8000)

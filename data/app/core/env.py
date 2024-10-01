@@ -1,13 +1,13 @@
+from redis.asyncio import Redis  # type: ignore
 import asyncio
+import aiofiles #type: ignore
 import smbus2 # type: ignore
 import os
-from redis.asyncio import Redis  # type: ignore
 from datetime import datetime
 import time
-from alerting import alert_publisher
-import aiofiles #type: ignore
 import json
-from logging_setup import logger
+from utils.logging_setup import logger
+from utils.alerting import alert_publisher
 
 class AHT10:
     def __init__(self, i2c_bus=1, address=0x38):

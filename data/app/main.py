@@ -1,14 +1,16 @@
 import asyncio
-from cp import INA260Camera
-from rp import INA260Router
-from sp import INA260System
-from env import AHT10
-from net import NetworkPing
-from cell import CellularMetrics
-from system_info import start_up
-from listener import Processor
-from dashboard import Dashboard_Setup
-from logging_setup import logger
+
+from core.cp import INA260Camera
+from core.rp import INA260Router
+from core.sp import INA260System
+from core.env import AHT10
+from core.net import NetworkPing
+from core.cell import CellularMetrics
+
+from utils.system_info import start_up
+from utils.listener import Processor
+from utils.dashboard import Dashboard_Setup
+from utils.logging_setup import logger
 
 async def main():
     await logger.info("Application started")
@@ -20,7 +22,7 @@ async def main():
     dashboard = Dashboard_Setup()
     await dashboard.run()
     dashboard.close()
-    await asyncio.sleep(2) # Make sure System Info is set up
+    await asyncio.sleep(1) # Make sure System Info is set up
     
     # Initialize collection scripts
     net = NetworkPing() # Network Metrics
@@ -45,6 +47,7 @@ async def main():
     ]
     # Run all tasks concurrently
     await asyncio.gather(*tasks)
-    
+
+
 if __name__ == '__main__':
     asyncio.run(main())

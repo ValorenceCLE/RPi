@@ -1,9 +1,9 @@
+from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync # type: ignore
+from influxdb_client.client.write_api_async import WriteApiAsync # type: ignore
 from redis.asyncio import Redis #type: ignore
 import json
 import os
 from influxdb_client import Point # type: ignore
-from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync # type: ignore
-from influxdb_client.client.write_api_async import WriteApiAsync # type: ignore
 from logging_setup import logger
 
 class AlertPublisher:

@@ -1,5 +1,5 @@
 # Stage 1: Build stage for dependencies
-FROM python:3.11-slim AS builder
+FROM python:3.11-bookworm AS builder
 
 # Install required build tools (GCC, g++, make) and Rust for building aiosnmp
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -18,8 +18,10 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+RUN pip install scalene
+
 # Stage 2: Final stage - slimmer image
-FROM python:3.11-slim
+FROM python:3.11-bookworm
 
 # Set working directory
 WORKDIR /app
@@ -32,4 +34,4 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY ./app /app
 
 # Command to run the application
-CMD ["python", "main.py"]
+CMD ["scalene", "--outfile", "/profiles/data_profile.txt", "--profile-interval", "0.1", "main.py"]

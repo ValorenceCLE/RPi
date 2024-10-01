@@ -1,7 +1,6 @@
 import aiofiles.os # type: ignore
 import os
 import asyncio
-import logging
 from aiologger.loggers.json import JsonLogger # type: ignore
 from aiologger.formatters.json import ExtendedJsonFormatter, LINE_NUMBER_FIELDNAME, FILE_PATH_FIELDNAME # type: ignore
 from aiologger.handlers.files import AsyncFileHandler # type: ignore
@@ -67,7 +66,7 @@ async def setup_logging(log_file=None, log_dir='/var/log/app', max_bytes=5 * 102
     # full path for the log file
     log_file_path = os.path.join(log_dir, log_file)
     
-    logger = JsonLogger(name='web_logger', level='INFO')
+    logger = JsonLogger(name='web_logger', level='WARNING')
     
     # Create a rotating file handler
     rotating_handler = RotatingAsyncFileHandler(

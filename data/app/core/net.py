@@ -3,7 +3,7 @@ from datetime import datetime
 import asyncio
 import aioping # type: ignore
 from redis.asyncio import Redis #type: ignore
-from logging_setup import logger
+from utils.logging_setup import logger
 
 # This script also needs better error handling
 

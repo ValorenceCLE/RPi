@@ -4,7 +4,7 @@ from datetime import datetime
 import asyncio
 from redis.asyncio import Redis #type: ignore
 import aiosnmp #type: ignore
-from logging_setup import logger
+from utils.logging_setup import logger
 
 # This script needs very strong error handling. It shouldnt cause a failure if the router is down/bad
 # It also shouldnt fail if there is no SIM card or No ACTIVE SIM card.

@@ -14,6 +14,17 @@ class InfluxService:
         self.org = settings.ORG
         self.bucket = settings.BUCKET
         self.url = settings.INFLUXDB_URL
+        self.client = None
+        self.query_api = None
+
+    async def __aenter__(self):
+        await self.initialize_client()
+        return self
+    
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.client.close()
+    
+    async def initialize_client(self):
         self.client = InfluxDBClientAsync(url=self.url, token=self.token, org=self.org)
         self.query_api = QueryApiAsync(self.client)
 
@@ -78,17 +89,16 @@ class InfluxService:
             await logger.error(f"Error fetching alerts: {e}")
             return [], False
 
-influx_service = InfluxService()
-
 @router.get("/api/alerts")
 async def get_alerts(limit: int = Query(10, gt=0), offset: int = Query(0, ge=0)):
-    try:
-        alerts, has_more = await influx_service.fetch_alerts(limit=limit, offset=offset)
-        if not alerts:
-            return {"message": "No alerts available", "has_more": False}
-        return {"alerts": alerts, "has_more": has_more}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching alerts: {e}")
+    async with InfluxService() as influx_service:
+        try:
+            alerts, has_more = await influx_service.fetch_alerts(limit=limit, offset=offset)
+            if not alerts:
+                return {"message": "No alerts available", "has_more": False}
+            return {"alerts": alerts, "has_more": has_more}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error fetching alerts: {e}")
 
 @router.get("/api/search_alerts")
 async def search_alerts(
@@ -99,17 +109,18 @@ async def search_alerts(
     source: Optional[str] = Query(None),
     level: Optional[str] = Query(None)
 ):
-    try:
-        alerts, has_more = await influx_service.search_alerts(
-            limit=limit,
-            offset=offset,
-            start=start,
-            end=end,
-            source=source,
-            level=level
-        )
-        if not alerts:
-            return {"message": "No alerts available", "has_more": False}
-        return {"alerts": alerts, "has_more": has_more}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error Fetching Alerts: {e}")
+    async with InfluxService() as influx_service:
+        try:
+            alerts, has_more = await influx_service.search_alerts(
+                limit=limit,
+                offset=offset,
+                start=start,
+                end=end,
+                source=source,
+                level=level
+            )
+            if not alerts:
+                return {"message": "No alerts available", "has_more": False}
+            return {"alerts": alerts, "has_more": has_more}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error Fetching Alerts: {e}")

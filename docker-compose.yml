@@ -17,14 +17,22 @@ services:
     restart: always
 
   data_collection:
-    #Use Image not build
     build: ./data
-    #image: data_collection:latest
     volumes:
       - ./logs:/var/log/app 
       - ./device_info:/device_info
+      - ./profiles:/profiles
+      - ./data/app:/app # Mount the local directory for easier
     privileged: true
     restart: always
+
+    # Uncomment the following lines to run the container in privileged mode (Used for profiling)
+    # security_opt:
+    #   - apparmor=unconfined  # Disable AppArmor restrictions
+    # stop_grace_period: 30s
+    # cap_add:
+    #   - SYS_PTRACE  # Allow ptrace operations
+
     environment:
       - LOG_FILE=/var/log/app/data.log
       - INFLUXDB_URL=http://influxdb:8086
@@ -66,6 +74,7 @@ services:
       - ./web/app:/app
       - ./device_info:/device_info
       - ./app_data:/app_data
+      - ./profiles:/profiles
     environment:
       - LOG_FILE=/var/log/app/web.log
       - INFLUXDB_URL=http://influxdb:8086
@@ -83,3 +92,4 @@ volumes:
   influxdb_data:
   logs:
     driver: local
+  profiles:
