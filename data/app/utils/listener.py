@@ -1,9 +1,6 @@
 import asyncio
-from redis.asyncio import Redis  # type: ignore
 from datetime import datetime
 from influxdb_client import Point # type: ignore
-from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync # type: ignore
-from influxdb_client.client.write_api_async import WriteApiAsync # type: ignore
 from utils.logging_setup import logger # Custom Async Logger ==> logging_setup.py
 from utils.config import settings
 from utils.clients import InfluxWriter, RedisClient
@@ -24,7 +21,6 @@ class Processor:
         self.org = settings.ORG
         self.collection_interval = 300  # Pull data every 5 minutes
         self.batch_points = []
-        self.client = None
         self.write_api = None
         
     # Async Init Function

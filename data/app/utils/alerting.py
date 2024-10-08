@@ -1,28 +1,21 @@
-from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync # type: ignore
-from influxdb_client.client.write_api_async import WriteApiAsync # type: ignore
-from redis.asyncio import Redis #type: ignore
+
 import json
-import os
 from influxdb_client import Point # type: ignore
 from utils.logging_setup import logger
+from utils.config import settings
+from utils.clients import InfluxWriter, RedisClient
 
 class AlertPublisher:
     def __init__(self):
-        self.redis_url = os.getenv('REDIS_URL')
-        self.redis = Redis.from_url(self.redis_url)
         self.channel = "alerts"
-        self.token = os.getenv('DOCKER_INFLUXDB_INIT_ADMIN_TOKEN')
-        self.org = os.getenv('DOCKER_INFLUXDB_INIT_ORG')
-        self.bucket = os.getenv('DOCKER_INFLUXDB_INIT_BUCKET')
-        self.url = os.getenv('INFLUXDB_URL')
-        self.client = None
+        self.org = settings.ORG
+        self.bucket = settings.BUCKET
         self.write_api = None
         
     # Async Init Function
     async def async_init(self):
-        if not self.client:
-            self.client = InfluxDBClientAsync(url=self.url, token=self.token, org=self.org)
-            self.write_api = WriteApiAsync(self.client)
+        self.redis = await RedisClient.get_instance()
+        self.write_api = await InfluxWriter.get_instance()
                 
     async def publish_alert(self, source: str, value, level: str, timestamp: str, message: str):
         alert_data = {
@@ -54,8 +47,8 @@ class AlertPublisher:
             await logger.error(f"Error writing to InfluxDB: {e}")
     
     async def close(self):
-        await self.redis.close()
-        await self.client.close()
+        await self.redis.close_instance()
+        await self.write_api.close_instance()
 
 # Singleton instance of AlertPublisher
 alert_publisher = AlertPublisher()

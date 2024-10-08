@@ -1,19 +1,21 @@
-import os 
 from datetime import datetime
 import asyncio
 import aioping # type: ignore
-from redis.asyncio import Redis #type: ignore
 from utils.logging_setup import logger
+from utils.config import settings
+from utils.clients import RedisClient
 
 # This script also needs better error handling
 
 class NetworkPing:
-    def __init__(self, target_ip='8.8.8.8'):
-        self.target_ip = target_ip
-        self.redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
-        self.redis = Redis.from_url(self.redis_url)
-        self.collection_interval = 30  # Interval in seconds between ping tests
+    def __init__(self):
+        self.target_ip = settings.PING_TARGET
+        self.collection_interval = settings.COLLECTION_INTERVAL  # Interval in seconds between ping tests
         self.ping_count = 5  # Number of pings per test
+        self.null = settings.NULL
+        
+    async def async_init(self):
+        self.redis = await RedisClient.get_instance()
         
     async def run_ping_test(self):
         try:
@@ -56,6 +58,7 @@ class NetworkPing:
             logger.error(f"Failed to stream data to Redis: {e}", exc_info=True)
         
     async def run(self):
+        await self.async_init()
         while True:
             await self.run_ping_test()
             await asyncio.sleep(self.collection_interval)

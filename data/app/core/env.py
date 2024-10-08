@@ -1,13 +1,13 @@
-from redis.asyncio import Redis  # type: ignore
 import asyncio
 import aiofiles #type: ignore
 import smbus2 # type: ignore
-import os
 from datetime import datetime
 import time
 import json
 from utils.logging_setup import logger
 from utils.alerting import alert_publisher
+from utils.config import settings
+from utils.clients import RedisClient
 
 class AHT10:
     def __init__(self, i2c_bus=1, address=0x38):
@@ -18,12 +18,13 @@ class AHT10:
         self.address = address
         if self.bus:
             self.init_sensor()
-        self.null = -9999
-        self.redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
-        self.redis = Redis.from_url(self.redis_url)
-        self.collection_interval = 30  # Interval in seconds between data collections
-        self.alert_file = 'alerts.json'
-
+        self.null = settings.NULL
+        self.collection_interval = settings.COLLECTION_INTERVAL  # Interval in seconds between data collections
+        self.alert_file = settings.ALERT_FILE
+        
+    async def async_init(self):
+        self.redis = await RedisClient.get_instance()
+    
     def init_sensor(self):
         if self.bus:
             self.bus.write_i2c_block_data(self.address, 0xE1, [0x08, 0x00])
@@ -82,6 +83,7 @@ class AHT10:
         await self.redis.xadd('environment_data', data)
 
     async def run(self):
+        await self.async_init()
         while True:
             await self.process_data()
             await asyncio.sleep(self.collection_interval)

@@ -1,24 +1,24 @@
-import os
 import asyncio
 from datetime import datetime
 import json
 import aiofiles #type: ignore
-from redis.asyncio import Redis # type: ignore
 import board # type: ignore
 import adafruit_ina260 # type: ignore
 from utils.alerting import alert_publisher
 from utils.logging_setup import logger
+from utils.config import settings
+from utils.clients import RedisClient
 
 class INA260Router:
     def __init__(self):
         i2c = board.I2C()
         self.ina260 = adafruit_ina260.INA260(i2c, address=0x40)
-        self.redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
-        self.redis = Redis.from_url(self.redis_url)
-        self.collection_interval = 30 #30 second collection interval
-        self.null = -9999
-        self.alert_file = 'alerts.json'
+        self.collection_interval = settings.COLLECTION_INTERVAL #30 second collection interval
+        self.null = settings.NULL
+        self.alert_file = settings.ALERT_FILE
         
+    async def async_init(self):
+        self.redis = await RedisClient.get_instance() 
     async def get_amps(self):
         return await asyncio.to_thread(lambda: round(self.ina260.current / 1000, 1))
     
@@ -78,6 +78,7 @@ class INA260Router:
         await self.redis.xadd('router_data', data)
         
     async def run(self):
+        await self.async_init()
         while True:
             await self.process_data()
             await asyncio.sleep(self.collection_interval)
