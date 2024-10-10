@@ -1,4 +1,5 @@
 from fastapi import FastAPI #type: ignore
+import uvicorn #type: ignore
 from fastapi.staticfiles import StaticFiles #type: ignore
 from starlette.middleware.gzip import GZipMiddleware #type: ignore
 from contextlib import asynccontextmanager
@@ -6,10 +7,14 @@ from core.middleware import LoggingMiddleware
 from routers import relay, gauge, graph, signal, alerts, auth, user, admin
 from core.startup import on_startup
 from core.logger import logger
+from core.certificate import is_certificate_valid, generate_cert
+from core.config import settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if not is_certificate_valid():
+        generate_cert()
     await logger.setup(log_file="web.log")
     await on_startup(app)
     await logger.info("App started")
@@ -33,5 +38,13 @@ app.include_router(admin.router)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 if __name__ == "__main__":
-    import uvicorn #type: ignore
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    if not is_certificate_valid():
+        generate_cert()
+
+    uvicorn.run(
+        "ssl_cert_automation:app",
+        host="0.0.0.0",
+        port=443,  # Update to port 443 for HTTPS
+        ssl_certfile=settings.CERT_FILE,
+        ssl_keyfile=settings.KEY_FILE
+    )
