@@ -38,6 +38,7 @@ async def login(
         value=username,
         max_age=3600,
         httponly=True,
+        secure=True,
         samesite="Lax"
     )
     return response

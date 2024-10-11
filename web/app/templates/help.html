@@ -3,43 +3,164 @@
 {% block content %}
 <link rel="stylesheet" href="/static/css/help.css">
 <div class="container">
-    <div class="accordion" id="accordionExample">
-    <div class="accordion-item">
-        <h2 class="accordion-header">
-        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-            Accordion Item #1
-        </button>
-        </h2>
-        <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
-        <div class="accordion-body">
-            <strong>This is the first item's accordion body.</strong> It is shown by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the <code>.accordion-body</code>, though the transition does limit overflow.
-        </div>
+    <div class="row justify-content-center m-0">
+        <div class="col-sm-4">
+            <div class="card m-3">
+                <div class="card-header">
+                    <h1 class="mb-0 text-center" id="signal">FAQ</h1>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="accordion-item">
-        <h2 class="accordion-header">
-        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-            Accordion Item #2
-        </button>
-        </h2>
-        <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
-        <div class="accordion-body">
-            <strong>This is the second item's accordion body.</strong> It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the <code>.accordion-body</code>, though the transition does limit overflow.
+    <div class="accordion mt-2" id="accordionExample">
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                <strong>Performing a key fob reset/bypass.</strong>
+              </button>
+            </h2>
+            <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+              <div class="accordion-body">
+                <strong>Instructions:</strong>
+                <br>1. Locate the key fob associated with the system and get within eyesight of the system.
+                <br>2. Press and hold the reset button on the key fob. The external status light should turn red.
+                <br>3. Press and hold the reset button again. The external status light should turn green.
+                <br>4. The system should now be reset. Please wait about five minutes for the system to come back online.
+                <br>5. If the system does not come online after 30 minutes, please contact support.
+                <br><strong>Context:</strong>
+                <br>A. Performing a key fob reset is a safe way to power cycle the system. This is useful when the system is unresponsive or the system is not functioning as expected.
+                <br>B. It is recommended to be within 100 feet or eyesight of the system when performing a key fob reset/bypass.
+                <br>C. Performing a key fob reset will not affect the system's configuration or settings.
+                <br>D. The key fob must be clicked twice to perform a reset/bypass. The first click will cut power to the system, and the second click will restore power to the system.
+              </div>
+            </div>
         </div>
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                <strong>Adding users to Axis Companion.</strong>
+            </button>
+          </h2>
+          <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+            <div class="accordion-body">
+              <strong>Instructions:</strong>
+              <br>1. Open the Axis Companion app on your device and sign into your site.
+              <br>2. Navigate to the 'Configuration' tab on Axis Companion.
+              <br>3. Click on the 'Users' tab.
+              <br>4. Select the 'Add...' button and enter the email address of the new user and select permissions level of the user.
+              <br>5. The new user will receive an email with instructions on how to sign into Axis Companion.
+              <br>6. Open the Axis Companion app and sign in. When signing in for the first time <strong>DO NOT CREATE A NEW SITE</strong>, rather accept the invitation to join the existing site.
+              <br><strong>Context:</strong>
+              <br>A. Adding users to Axis Companion allows multiple users to access the system.
+              <br>B. Users will need to complete Axis 2FA to access the system. Refer to the 'Setting up Axis 2FA' FAQ for more information.
+              <br>C. If any issues arise when adding users to Axis Companion, please contact support.
+            </div>
+          </div>
         </div>
-    </div>
-    <div class="accordion-item">
-        <h2 class="accordion-header">
-        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-            Accordion Item #3
-        </button>
-        </h2>
-        <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
-        <div class="accordion-body">
-            <strong>This is the third item's accordion body.</strong> It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the <code>.accordion-body</code>, though the transition does limit overflow.
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                <strong>Axis 2FA.</strong>
+              </button>
+            </h2>
+            <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+              <div class="accordion-body">
+                <strong>Instructions:</strong>
+                <br>1. The folling instructions will help you set up Axis 2FA for new site users. See the 'Adding users to Axis Companion' FAQ for more information on adding users.
+                <br>2. Once a new user has been added to Axis Companion, they will receive an email with instructions on how to set up Axis 2FA.
+                <br>3. Open the email from Axis and follow the instructions to create an Axis account.
+                <br>4. Once the account is created, the user will be prompted to set up 2FA. Follow the instructions to set up 2FA.
+                <br>5. You should now be able to login to Axis Companion. If you have any issues, please contact support.
+                <br><strong>Context:</strong>
+                <br>A. If you do not have access to the email associated with the Axis account, please contact support.
+                <br>B. Axis 2FA is required for all users to access the system. If you are having trouble setting up 2FA, please contact support.
+              </div>
+            </div>
         </div>
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                <strong>Connecting to the system locally.</strong>
+              </button>
+            </h2>
+            <div id="collapseFour" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+              <div class="accordion-body">
+                <strong>Instructions:</strong>
+                <br>1. Begin by bringing the system into your office or get as close to the system as possible.
+                <br>2. Connect to the system's Wi-Fi network. The network name will begin with 'NWA' followed by four numbers/letters.
+                <br>3. Once connected to the system's Wi-Fi network, navigate to one of the local addresses provided below.
+                <br><strong>Context:</strong>
+                <br>A. The Wi-Fi password was provided in the initial training email sent to you. If you do not have the password, please contact support.
+                <br>B. Connecting to the system locally allows for a easier troubleshooting.
+                <br>C. Local Addresses: <a href="https://192.168.1.1:8443">Router</a>, <a href="http://192.168.1.3">Camera</a>
+              </div>
+            </div>
         </div>
-    </div>
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive">
+                <strong>Adding cameras to Axis Companion.</strong>
+              </button>
+            </h2>
+            <div id="collapseFive" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+              <div class="accordion-body">
+                <strong>Instructions:</strong>
+                <br>1. To add a camera you must be connected to the system locally. Refer to the 'Connecting to the system locally' FAQ for more information.
+                <br>2. Once connected to the system locally, navigate to the 'Configuration' tab on Axis Companion.
+                <br>3. Click on 'Add Devices' and enter the camera's IP address and credentials.
+                <br>4. Axis Companion should automatically detect the camera with an IP address of '192.168.1.3'. If the camera is not detected, please contact support.
+                <br>5. You will be prompted to enter the <strong>root</strong> password for the camera. Note this is different than your normal credentials.
+                <br>6. Follow the on-screen instructions to add the camera to Axis Companion. This may take a few minutes.
+                <br><strong>Context:</strong>
+                <br>A. Please see 'Connecting to the system locally' FAQ for more information on connecting to the system locally.
+                <br>B. If you are having trouble adding a camera to Axis Companion, please contact support imeediately.
+                <br>C. The root password for the camera was provided in the initial training email sent to you. Email support if you do not have the password.
+              </div>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix" aria-expanded="false" aria-controls="collapseSix">
+                <strong>Removing cameras from Axis Companion.</strong>
+              </button>
+            </h2>
+            <div id="collapseSix" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+              <div class="accordion-body">
+                <strong>Instructions:</strong>
+                <br>1. Open Axis Companion and navigate to the 'Configuration' tab.
+                <br>2. You should see a list of your cameras, find the camera you want to set a preset position for and click on the three dots on the right side of the camera.
+                <br>3. To remove a camera click on 'Remove' and confirm the removal.
+                <br>4. To add a camera you must be connected to the system locally. Refer to the 'Connecting to the system locally' FAQ for more information.
+                <br>5. Once connected to the system locally, navigate to the 'Configuration' tab on Axis Companion.
+                <br>6. Click on 'Add Devices' and enter the camera's IP address and credentials.
+                <br><strong>Context:</strong>
+                <br>A. This is a destructive action and cannot be undone. Please be sure you want to remove a camera before confirming the removal.
+                <br>B. If you are having trouble adding a camera to Axis Companion, please contact support.
+              </div>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSeven" aria-expanded="false" aria-controls="collapseSeven">
+                  <strong>Setting up preset positions.</strong>
+              </button>
+            </h2>
+            <div id="collapseSeven" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+              <div class="accordion-body">
+                <strong>Instructions:</strong>
+                <br>1. Open Axis Companion and navigate to the 'Configuration' tab.
+                <br>2. You should see a list of your cameras, find the camera you want to set a preset position for and click on the three dots on the right side of the camera.
+                <br>3. This will open an additional menu, click on 'Advanced Settings'. Note this may take a few seconds to load.
+                <br>4. Sign in with the username/password credentials for the camera. Note these are different from your Axis Companion credentials.
+                <br>5. Navigate to the 'PTZ' tab on the right hand side of the screen. Then click on 'Preset Positions'.
+                <br>6. Click on the 'Create preset position'. Note that whatever the camera is pointing at when you create the preset position will become the preset.
+                <br><strong>Context:</strong>
+                <br>A. If a preset position is set as the 'Home Position' the camera will automatically return here after 30 minutes.
+                <br>B. There is no limit to the number of preset positions that can be set. However, there can only be one 'Home Position'.
+                <br>C. Modify preset position behavior such as return to home time in the 'PTZ' tab under 'Settings'.
+              </div>
+            </div>
+        </div>
     </div>
 </div> 
 {% endblock %}

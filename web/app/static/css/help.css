@@ -2,3 +2,15 @@
     margin-top: 1rem;
     margin-bottom: 1rem;
 }
+.card-header {
+    background-color: #0940BA;
+    color: whitesmoke;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+.card {
+    border-radius: 15px;
+    border-color: inherit;
+    overflow: hidden;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
