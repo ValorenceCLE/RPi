@@ -4,14 +4,6 @@ This repository is for the R&D code and built around the DPM (Dual-Purpose Modul
 
 _[Control By Web](https://controlbyweb.com/)_
 
-## **Table of Contents**
-
-- Background/Features
-- Installation
-- Configuration
-- Key Components
-- FAQ/Info
-
 ## **Background**
 
 - A CBW is able to control relays remotely, provide real time sensor reaadings and web interface that allows for remote relay control.
