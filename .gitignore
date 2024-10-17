@@ -2,8 +2,5 @@ config/
 device_info/
 __pycache__/
 .venv/
-logs/
-app_data/
-profiles/
-nginx/
-certs/
+etc/
+env/

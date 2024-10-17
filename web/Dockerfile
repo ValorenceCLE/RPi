@@ -15,4 +15,4 @@ RUN pip install --upgrade pip && pip install --default-timeout=150 --no-cache-di
 EXPOSE 8000
 
 # Command to run the application
-CMD ["gunicorn", "main:app", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--workers", "4", "--reload"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--reload"]

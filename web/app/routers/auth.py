@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Request, Form, Depends, status # type: ignore
-from fastapi.responses import RedirectResponse, HTMLResponse # type: ignore
-from core.security import verify_password
+from fastapi import APIRouter, Request, Form, Depends, status, HTTPException
+from fastapi.responses import RedirectResponse, HTMLResponse
+from core.security import authenticate_user, create_access_token
 from core.config import settings
-from fastapi.templating import Jinja2Templates # type: ignore
+from fastapi.templating import Jinja2Templates
+from datetime import timedelta
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -18,34 +19,28 @@ async def login_page(request: Request):
 
 # Login submission
 @router.post("/login")
-async def login(
-    request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
-    hashed_passwords: dict = Depends(get_hashed_passwords),
-):
-    # Authenticate User
-    if username == hashed_passwords["USER_USERNAME"] and verify_password(password, hashed_passwords["USER_PASSWORD_HASH"]):
-        role = "user"
-    elif username == hashed_passwords["ADMIN_USERNAME"] and verify_password(password, hashed_passwords["ADMIN_PASSWORD_HASH"]):
-        role = "admin"
-    else:
+async def login(request: Request, username: str = Form(...), password: str = Form(...)):
+    user = authenticate_user(username, password)
+    if not user:
         return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
-    
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user["username"], "role": user["role"]},
+        expires_delta=access_token_expires,
+    )
     response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
     response.set_cookie(
-        key="username",
-        value=username,
-        max_age=3600,
+        key="access_token",
+        value=access_token,
+        max_age=access_token_expires.total_seconds(),
         httponly=True,
         secure=True,
-        samesite="Lax"
+        samesite="Lax",
     )
     return response
 
-# Logout route
 @router.get("/logout")
 async def logout():
     response = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    response.delete_cookie("username")
+    response.delete_cookie("access_token")
     return response

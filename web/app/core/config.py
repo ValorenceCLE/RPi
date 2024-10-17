@@ -1,4 +1,5 @@
 import os
+import secrets
 
 class Settings:
     """
@@ -25,5 +26,8 @@ class Settings:
     CERT_DIR = "/etc/nginx/certs"
     CERT_FILE = os.path.join(CERT_DIR, "cert.pem")
     KEY_FILE = os.path.join(CERT_DIR, "key.pem")
+    SECRET_KEY = secrets.token_hex(32)
+    ALGORITHM = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES = 60
     
 settings = Settings()
