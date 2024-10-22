@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import aiofiles #type: ignore
 import board # type: ignore
@@ -37,7 +37,7 @@ class INA260Camera:
             warning_alert = alert_templates["camera_warning"]
             error_alert = alert_templates["camera_error"]
         try:
-            timestamp = datetime.utcnow().isoformat()
+            timestamp = datetime.now(timezone.utc).isoformat()
             volts = await self.get_volts()
             watts = await self.get_watts()
             amps = await self.get_amps()

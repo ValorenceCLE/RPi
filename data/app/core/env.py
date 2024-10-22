@@ -1,7 +1,7 @@
 import asyncio
 import aiofiles #type: ignore
 import smbus2 # type: ignore
-from datetime import datetime
+from datetime import datetime, timezone
 import time
 import json
 from utils.logging_setup import logger
@@ -59,7 +59,7 @@ class AHT10:
         try:
             temperature = await self.read_temperature()
             humidity = await self.read_humidity()
-            timestamp = datetime.utcnow().isoformat()
+            timestamp = datetime.now(timezone.utc).isoformat()
             if temperature >= 110:
                 await alert_publisher.publish_alert(
                     source=alert_template["source"],

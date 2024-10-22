@@ -57,7 +57,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         },
         plotOptions: {
             solidgauge: {
-                borderRadius: 3,
                 dataLabels: {
                     y: 5,
                     borderWidth: 0,
@@ -141,7 +140,9 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     // WebSocket connection for the homepage
-    const ws = new WebSocket(`ws://${window.location.host}/ws/`);
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const socketUrl = `${protocol}//${window.location.host}/ws/`;
+    const ws = new WebSocket(socketUrl);
 
     ws.onmessage = function (event) {
         const data = JSON.parse(event.data);

@@ -22,7 +22,7 @@ class Settings:
     INFLUXDB_URL = os.getenv('INFLUXDB_URL')
     BUCKET = os.getenv('DOCKER_INFLUXDB_INIT_BUCKET')
     ORG = os.getenv('DOCKER_INFLUXDB_INIT_ORG')
-    TOEKN = os.getenv('DOCKER_INFLUXDB_INIT_ADMIN_TOKEN')
+    TOKEN = os.getenv('DOCKER_INFLUXDB_INIT_ADMIN_TOKEN')
     CERT_DIR = "/etc/nginx/certs"
     CERT_FILE = os.path.join(CERT_DIR, "cert.pem")
     KEY_FILE = os.path.join(CERT_DIR, "key.pem")

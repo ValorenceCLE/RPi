@@ -10,7 +10,7 @@ router = APIRouter()
 
 class InfluxService:
     def __init__(self):
-        self.token = settings.TOEKN
+        self.token = settings.TOKEN
         self.org = settings.ORG
         self.bucket = settings.BUCKET
         self.url = settings.INFLUXDB_URL

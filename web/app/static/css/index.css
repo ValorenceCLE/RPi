@@ -1,9 +1,12 @@
 .chart-container {
-    width: 110%;
+    width: 100%;  /* Adjust the width to be 100% of the parent container */
     height: 12rem;
     background-color: whitesmoke; /* Match the card's background color */
     font-weight: bolder;
     font-size: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;  /* Centers the gauge both horizontally and vertically */
 }
 .chart-title{
     position: absolute;
@@ -44,7 +47,7 @@ a:hover, a:focus {
     color: whitesmoke;
 }
 #container-line-chart{
-    height: auto;
+    height: 100%;
     width: auto;
     font-weight: bold;
     color: whitesmoke;

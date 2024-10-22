@@ -1,6 +1,6 @@
-from fastapi import APIRouter, HTTPException #type: ignore
+from fastapi import APIRouter, HTTPException
 from datetime import datetime, timedelta
-from redis.asyncio import Redis #type:ignore
+from redis.asyncio import Redis
 from core.config import settings
 from core.logger import logger
 

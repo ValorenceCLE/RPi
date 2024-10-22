@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 import aiosnmp #type: ignore
 from utils.logging_setup import logger
@@ -68,7 +68,7 @@ class CellularMetrics:
             await logger.error(f"Error processing data: {e}")
         
     async def stream_data(self, sinr, rsrp, rsrq):
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         data = {
             "timestamp": timestamp,
             "sinr": sinr,

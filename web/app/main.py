@@ -6,12 +6,11 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException
 from starlette.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
-from routers import relay, gauge, graph, signal, alerts, auth, user, admin
+from routers import relay, gauge, graph, signal, alerts, auth, user, admin, line
 from core.startup import on_startup
 from core.logger import logger
 from core.certificate import is_certificate_valid, generate_cert
 from core.config import settings
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,7 +21,7 @@ async def lifespan(app: FastAPI):
     await logger.info("App started")
     yield
     await logger.info("Shutting down...")
-    
+
 app = FastAPI(lifespan=lifespan)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -41,6 +40,15 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.middleware("http")
 async def security_headers_middleware(request: Request, call_next):
     response: Response = await call_next(request)
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' https://cdn.jsdelivr.net https://code.highcharts.com; "
+        "style-src 'self' https://cdn.jsdelivr.net; "
+        "img-src 'self' data:; "
+        "font-src 'self' https://cdn.jsdelivr.net; "
+        "connect-src 'self' wss:; "  # Allow any secure WebSocket connection
+        "frame-src 'self'; "
+    )
     response.headers['X-Frame-Options'] = "DENY"
     response.headers['X-Content-Type-Options'] = "nosniff"
     response.headers['Strict-Transport-Security'] = "max-age=31536000; includeSubDomains"
@@ -54,8 +62,7 @@ async def logging_middleware(request: Request, call_next):
     logger.info(f"Sent response: {response.status_code}")
     return response
 
-
-
+# Include your routers
 app.include_router(auth.router)
 app.include_router(relay.router)
 app.include_router(gauge.router)
@@ -64,17 +71,16 @@ app.include_router(signal.router)
 app.include_router(alerts.router)
 app.include_router(user.router)
 app.include_router(admin.router)
+app.include_router(line.router)
 
+# Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 if __name__ == "__main__":
-    if not is_certificate_valid():
-        generate_cert()
-
+    # Remove SSL parameters since Nginx handles SSL
     uvicorn.run(
-        "ssl_cert_automation:app",
+        "main:app",
         host="0.0.0.0",
-        port=443,  # Update to port 443 for HTTPS
-        ssl_certfile=settings.CERT_FILE,
-        ssl_keyfile=settings.KEY_FILE
+        port=8000,  # Ensure this matches the proxy_pass in Nginx
+        reload=True  # Optional: Enable reload for development
     )

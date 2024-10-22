@@ -1,40 +1,63 @@
-document.addEventListener('DOMContentLoaded', function () {
-    // Determine the page and datasets dynamically
-    const pageName = window.location.pathname.split('/').pop(); // Extract page name from URL
+document.addEventListener('DOMContentLoaded', async function () {
+    const pathSegments = window.location.pathname.split('/');
+    const pageName = pathSegments[pathSegments.length -1] || 'system'; // Default to system page
 
-    // Map datasets based on the page
     const datasets = {
-        system: ['Volts', 'Watts', 'Amps'],
-        router: ['Volts', 'Watts', 'Amps'],
-        camera: ['Volts', 'Watts', 'Amps'],
-        network: ['RSRP', 'RSRQ', 'SINR']
+        system: [
+            { displayName: 'Volts', fieldName: 'volts' },
+            { displayName: 'Watts', fieldName: 'watts' },
+            { displayName: 'Amps', fieldName: 'amps' }
+        ],
+        router: [
+            { displayName: 'Volts', fieldName: 'volts' },
+            { displayName: 'Watts', fieldName: 'watts' },
+            { displayName: 'Amps', fieldName: 'amps' }
+        ],
+        camera: [
+            { displayName: 'Volts', fieldName: 'volts' },
+            { displayName: 'Watts', fieldName: 'watts' },
+            { displayName: 'Amps', fieldName: 'amps' }
+        ],
+        network: [
+            { displayName: 'RSRP', fieldName: 'rsrp' },
+            { displayName: 'RSRQ', fieldName: 'rsrq' },
+            { displayName: 'SINR', fieldName: 'sinr' }
+        ]
     };
-
-    const currentPageData = datasets[pageName] || datasets['system']; // Default to system if page not found
-
-    // Initialize the chart
+    
+    const currentPageData = datasets[pageName] || datasets['system']; // Default to system data
     let chart = null;
 
-    // Function to render the chart
-    function renderLineChart(data) {
+    function renderLineChart(data, yMin, yMax) {
         chart = Highcharts.chart('container-line-chart', {
+            time: {
+                useUTC: false // Use local time
+            },
+            boost: {
+                useGPUTranslations: true, // Use GPU translations for performance
+                usePreallocated: true     // Preallocate arrays for faster rendering
+            },
             chart: {
-                type: 'spline',
-                backgroundColor: '#fff'
+                type: 'spline', // Use 'spline' for smoother lines
+                backgroundColor: '#fff',
+                zoomType: 'x' // Enable zooming on the x-axis
             },
             title: {
                 text: null // Remove chart title
             },
             xAxis: {
                 type: 'datetime',
-                dateTimeLabelFormats: {
-                    month: '%e. %b',
-                    year: '%b'
-                },
                 labels: {
                     style: {
-                        color: '#333'
+                        color: '#333' // Dark color for labels
+                    },
+                    formatter: function () {
+                        // Format the label to show local time in a readable format
+                        return Highcharts.dateFormat('%m/%d  %I:%M%p', this.value);
                     }
+                },
+                title: {
+                    text: 'Timestamp'
                 }
             },
             yAxis: {
@@ -43,24 +66,38 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 labels: {
                     style: {
-                        color: '#333'
+                        color: '#333' // Dark color for labels
                     }
-                }
+                },
+                allowDecimals: true,
+                min: yMin, // Set y-axis minimum
+                max: yMax, // Set y-axis maximum
+                minPadding: 0.05,
+                maxPadding: 0.05
             },
             tooltip: {
-                headerFormat: '<b>{series.name}</b><br>',
-                pointFormat: '{point.x:%e. %b}: {point.y:.2f}'
+                shared: true, // Show a single tooltip for all series
+                crosshairs: true, // Show a vertical line for each data point
+                formatter: function () {
+                    let tooltip = `<b>${Highcharts.dateFormat('%m/%d %I:%M%p', this.x)}</b><br/>`;
+                    this.points.forEach((point) => {
+                        tooltip += `<span style="color:${point.color}">\u25CF</span> ${point.series.name}: <b>${point.y}</b><br/>`;
+                    });
+                    return tooltip;
+                }
             },
             plotOptions: {
                 series: {
                     marker: {
-                        symbol: 'circle',
-                        fillColor: '#FFFFFF',
-                        enabled: true,
-                        radius: 1.5,
-                        lineWidth: 1,
-                        lineColor: null
-                    }
+                        enabled: false // Disable markers for each data point
+                    },
+                    turboThreshold: 0, // Disable the turbo threshold
+                    boostThreshold: 1,  // Activate boost for large datasets
+                    // dataGrouping: {
+                    //     enabled: true,
+                    //     approximation: 'average',
+                    //     groupPixelWidth: 10
+                    // }
                 }
             },
             series: data, // Load data dynamically
@@ -68,53 +105,109 @@ document.addEventListener('DOMContentLoaded', function () {
                 enabled: false
             },
             legend: {
-                enabled: true // Enable legend to differentiate data sets
+                enabled: true,
+                layout: 'horizontal',
+                align: 'center',
+                verticalAlign: 'bottom',
+            },
+            exporting: {
+                enabled: true
+            },
+            responsive: {
+                rules: [{
+                    condition: {
+                        maxWidth: 800
+                    },
+                    chartOptions: {
+                        legend: {
+                            enabled: false
+                        }
+                    }
+                }]
             }
         });
     }
 
-    // Fetch and update the chart data
-    async function fetchChartData(timeFrame) {
+    // Fetch the data from the server
+    async function fetchData(timeFrame) {
         try {
-            const response = await fetch(`/${pageName}/data/${timeFrame}`);
+            const response = await fetch(`/${pageName}/demo/${timeFrame}`);
             const result = await response.json();
-
-            if (result.error) {
-                chart.setTitle({ text: 'Error' });
+            if (result.error){
+                if(chart) {
+                    chart.setTitle({ text: 'Error Fetching Data' });
+                } else{
+                    renderLineChart([], null, null);
+                }
                 return;
             }
-
-            const chartData = currentPageData.map((name, index) => {
-                return {
-                    name: name,
-                    data: result.data.map(item => [Date.parse(item.timestamp), item[name.toLowerCase()]])
-                };
+            const seriesData = currentPageData.map(field => ({
+                name: field.displayName,
+                data: []
+            }));
+            result.data.forEach(entry => {
+                const timestamp = Date.parse(entry.timestamp);
+                if (isNaN(timestamp)) {
+                    console.warn(`Invalid timestamp: ${entry.timestamp}`);
+                    return; // Skip invalid timestamps
+                }
+                currentPageData.forEach((field, index) => {
+                    const value = entry[field.fieldName.toLowerCase()];
+                    if (value !== undefined && value !== null) {
+                        const numericValue = parseFloat(value);
+                        if (isNaN(numericValue)) {
+                            console.warn(`Invalid value for ${field.displayName}: ${value}`);
+                            return; // Skip invalid values
+                        }
+                        seriesData[index].data.push([timestamp, numericValue]);
+                    }
+                });
             });
 
-            // Render or update the chart with the new data
-            if (chart) {
-                chart.series.forEach((series, index) => {
-                    series.setData(chartData[index].data);
+            // Debugging: Check if data is being populated correctly
+            console.log("Series Data:", seriesData);
+
+            // Calculate global yMin and yMax
+            const allValues = seriesData.flatMap(series => series.data.map(point => point[1]));
+            const yMin = Math.min(...allValues);
+            const yMax = Math.max(...allValues);
+
+            // Add a buffer to yMin and yMax for better visualization
+            const buffer = (yMax - yMin) * 0.05;
+            const adjustedYMin = yMin - buffer;
+            const adjustedYMax = yMax + buffer;
+
+            console.log(`yMin: ${adjustedYMin}, yMax: ${adjustedYMax}`);
+
+            // Render the line chart with new data
+            if (chart){
+                seriesData.forEach((series, index) => {
+                    if (chart.series[index]) {
+                        chart.series[index].setData(series.data, false, false, false);
+                    } else {
+                        chart.addSeries(series, false, false);
+                    }
                 });
+                // Update yAxis extremes
+                chart.yAxis[0].setExtremes(adjustedYMin, adjustedYMax, false);
+                chart.redraw();
             } else {
-                renderLineChart(chartData);
+                renderLineChart(seriesData, adjustedYMin, adjustedYMax);
             }
         } catch (error) {
-            console.error("Error fetching chart data:", error);
+            console.error(error);
             if (chart) {
-                chart.setTitle({ text: 'Error' });
+                chart.setTitle({ text: 'Error Fetching Data' });
+            } else {
+                renderLineChart([], null, null);
             }
         }
     }
-
-    // Event listener for time frame selection
     document.querySelectorAll('.dropdown-item').forEach(item => {
         item.addEventListener('click', function () {
             const timeFrame = this.getAttribute('data-value');
-            fetchChartData(timeFrame);
+            fetchData(timeFrame);
         });
     });
-
-    // Initial load with 15 minutes of data (or the default time frame)
-    fetchChartData('15m');
+    fetchData('1h');;
 });
