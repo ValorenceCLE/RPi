@@ -28,6 +28,12 @@ class InfluxService:
         self.client = InfluxDBClientAsync(url=self.url, token=self.token, org=self.org)
         self.query_api = QueryApiAsync(self.client)
 
+    # TODO: verify the logic to make sure they are being returned as desired.
+    # ? Should we build out the alert system to use a custom error code system.
+    # ? e.g psr-001 ('psr' Power Sensor Router, '001' error code)
+    # ? This would allow for more detailed error messages and easier debugging.
+    # ? Maybe a better way to give codes to different scripts and functions.
+    
     async def fetch_alerts(self, limit: int, offset: int) -> List[dict]:
         query = f'from(bucket: "{self.bucket}") |> range(start: 0) |> filter(fn: (r) => r._measurement == "alerts") |> sort(columns: ["_time"], desc: true) |> limit(n: {limit + 1}, offset: {offset})'
         try:

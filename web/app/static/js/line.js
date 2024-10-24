@@ -28,10 +28,12 @@ document.addEventListener('DOMContentLoaded', async function () {
     const currentPageData = datasets[pageName] || datasets['system']; // Default to system data
     let chart = null;
 
+
+
     function renderLineChart(data, yMin, yMax) {
         chart = Highcharts.chart('container-line-chart', {
             time: {
-                useUTC: false // Use local time
+                useUTC: false // Ensure Highcharts uses UTC and converts to local time
             },
             boost: {
                 useGPUTranslations: true, // Use GPU translations for performance
@@ -53,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     },
                     formatter: function () {
                         // Format the label to show local time in a readable format
-                        return Highcharts.dateFormat('%m/%d  %I:%M%p', this.value);
+                        return Highcharts.dateFormat('%m/%d %I:%M%p', this.value);
                     }
                 },
                 title: {
@@ -93,11 +95,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                     },
                     turboThreshold: 0, // Disable the turbo threshold
                     boostThreshold: 1,  // Activate boost for large datasets
-                    // dataGrouping: {
-                    //     enabled: true,
-                    //     approximation: 'average',
-                    //     groupPixelWidth: 10
-                    // }
+                    dataGrouping: {
+                        enabled: true,
+                        approximation: 'average',
+                        groupPixelWidth: 10
+                    }
                 }
             },
             series: data, // Load data dynamically
@@ -128,10 +130,25 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     }
 
+    // Helper function to clean timestamps
+    function cleanTimestamp(timestamp) {
+        return timestamp.replace(/(\.\d{3})\d+/, '$1');
+    }
+
+    function checkTimestamp(utcTimestamp){
+        const date = new Date(utcTimestamp);
+        if (utcTimestamp.endsWith('Z') || utcTimestamp.includes('+00:00')) {
+            const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+            return localDate
+        } else {
+            return date
+        }
+    }
+
     // Fetch the data from the server
     async function fetchData(timeFrame) {
         try {
-            const response = await fetch(`/${pageName}/demo/${timeFrame}`);
+            const response = await fetch(`/${pageName}/data/${timeFrame}`);
             const result = await response.json();
             if (result.error){
                 if(chart) {
@@ -146,9 +163,10 @@ document.addEventListener('DOMContentLoaded', async function () {
                 data: []
             }));
             result.data.forEach(entry => {
-                const timestamp = Date.parse(entry.timestamp);
+                const cleanedTimestamp = cleanTimestamp(entry.timestamp);
+                const timestamp = checkTimestamp(cleanedTimestamp).getTime();
                 if (isNaN(timestamp)) {
-                    console.warn(`Invalid timestamp: ${entry.timestamp}`);
+                    console.warn(`Invalid timestamp after cleaning: ${cleanedTimestamp}`);
                     return; // Skip invalid timestamps
                 }
                 currentPageData.forEach((field, index) => {
@@ -164,9 +182,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 });
             });
 
-            // Debugging: Check if data is being populated correctly
-            console.log("Series Data:", seriesData);
-
             // Calculate global yMin and yMax
             const allValues = seriesData.flatMap(series => series.data.map(point => point[1]));
             const yMin = Math.min(...allValues);
@@ -176,8 +191,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             const buffer = (yMax - yMin) * 0.05;
             const adjustedYMin = yMin - buffer;
             const adjustedYMax = yMax + buffer;
-
-            console.log(`yMin: ${adjustedYMin}, yMax: ${adjustedYMax}`);
 
             // Render the line chart with new data
             if (chart){
@@ -203,11 +216,12 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
         }
     }
+
     document.querySelectorAll('.dropdown-item').forEach(item => {
         item.addEventListener('click', function () {
             const timeFrame = this.getAttribute('data-value');
             fetchData(timeFrame);
         });
     });
-    fetchData('1h');;
+    fetchData('1h');
 });

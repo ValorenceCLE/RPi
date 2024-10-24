@@ -53,7 +53,7 @@ class WebGrapher:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error fetching data: {e}")
 
-@router.get("/{page_name}/demo/{time_frame}")
+@router.get("/{page_name}/data/{time_frame}")
 async def get_graph_data(page_name: str, time_frame: str):
     stream_map = settings.STREAM_MAP
     stream_name = stream_map.get(page_name)
