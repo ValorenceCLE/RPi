@@ -59,7 +59,7 @@ class AHT10:
         try:
             temperature = await self.read_temperature()
             humidity = await self.read_humidity()
-            timestamp = datetime.now(timezone.utc).isoformat()
+            timestamp = datetime.now(timezone.utc).astimezone().isoformat()
             if temperature >= 110:
                 await alert_publisher.publish_alert(
                     source=alert_template["source"],

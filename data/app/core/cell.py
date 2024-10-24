@@ -7,20 +7,10 @@ from utils.clients import RedisClient
 
 # This script needs very strong error handling. It shouldnt cause a failure if the router is down/bad
 # It also shouldnt fail if there is no SIM card or No ACTIVE SIM card.
-# OID mappings for different router models
-# OLD OID Mappings, See config.py for new OID mappings
-# OID_MAPPINGS = {
-#     "Peplink MAX BR1 Mini": {
-#         'sinr_oid': '.1.3.6.1.4.1.23695.200.1.12.1.1.1.5.0',
-#         'rsrp_oid': '.1.3.6.1.4.1.23695.200.1.12.1.1.1.7.0',
-#         'rsrq_oid': '.1.3.6.1.4.1.23695.200.1.12.1.1.1.8.0'
-#     },
-#     "Pepwave MAX BR1 Pro 5G": {
-#         'sinr_oid': '.1.3.6.1.4.1.27662.200.1.12.1.1.1.5.0',
-#         'rsrp_oid': '.1.3.6.1.4.1.27662.200.1.12.1.1.1.7.0',
-#         'rsrq_oid': '.1.3.6.1.4.1.27662.200.1.12.1.1.1.8.0'
-#     }
-# }
+# It should just pass and try again.
+# Maybe using -9999 as a null value is not a good idea. 
+# We do not want to store bad/null values as null or None or it will cause errors, it also should be an int or float
+# Maybe we use 0 as a null value. 
 
 class CellularMetrics:
     def __init__(self):
@@ -29,12 +19,6 @@ class CellularMetrics:
         self.null = settings.NULL
         self.collection_interval = settings.COLLECTION_INTERVAL # Interval in seconds between SNMP requests
         self.oid_mappings = settings.OID_MAPPINGS
-        # Commented out because we may not need to know the model of the router
-        # Both routers have the same OID mappings so we can just use the mappings directly
-        # with open(self.SYSTEM_INFO_PATH, 'r') as file:
-        #     data = json.load(file)
-        # self.model = data["Router"]["Model"]
-        # self.oid_mappings = OID_MAPPINGS[self.model]
         
         
     async def async_init(self):
@@ -68,7 +52,7 @@ class CellularMetrics:
             await logger.error(f"Error processing data: {e}")
         
     async def stream_data(self, sinr, rsrp, rsrq):
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(timezone.utc).astimezone().isoformat()
         data = {
             "timestamp": timestamp,
             "sinr": sinr,

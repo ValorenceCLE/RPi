@@ -45,7 +45,7 @@ class NetworkPing:
     async def stream_data(self, avg_rtt, min_rtt, max_rtt, packet_loss_percent):
         """Saves the data to Redis."""
         try:
-            timestamp = datetime.now(timezone.utc).isoformat()
+            timestamp = datetime.now(timezone.utc).astimezone().isoformat()
             data = {
                 "timestamp": timestamp,
                 "avg_rtt": avg_rtt,

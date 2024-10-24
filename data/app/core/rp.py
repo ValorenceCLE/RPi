@@ -36,7 +36,7 @@ class INA260Router:
             warning_alert = alert_templates["router_warning"]
             error_alert = alert_templates["router_error"]
         try:
-            timestamp = datetime.now(timezone.utc).isoformat()
+            timestamp = datetime.now(timezone.utc).astimezone().isoformat()
             volts = await self.get_volts()
             watts = await self.get_watts()
             amps = await self.get_amps()
