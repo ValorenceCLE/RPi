@@ -6,18 +6,17 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException
 from starlette.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
-from routers import relay, gauge, graph, signal, alerts, auth, user, admin, line
-from core.startup import on_startup
+from routers import relay, gauge, signal, alerts, auth, user, admin, line, snmp
 from core.logger import logger
 from core.certificate import is_certificate_valid, generate_cert
-from core.config import settings
+from routers.snmp import load_device_info
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if not is_certificate_valid():
         generate_cert()
     await logger.setup(log_file="web.log")
-    await on_startup(app)
+    await load_device_info(app)
     await logger.info("App started")
     yield
     await logger.info("Shutting down...")
@@ -66,12 +65,14 @@ async def logging_middleware(request: Request, call_next):
 app.include_router(auth.router)
 app.include_router(relay.router)
 app.include_router(gauge.router)
-app.include_router(graph.router)
 app.include_router(signal.router)
 app.include_router(alerts.router)
 app.include_router(user.router)
 app.include_router(admin.router)
 app.include_router(line.router)
+app.include_router(snmp.router)
+
+
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")

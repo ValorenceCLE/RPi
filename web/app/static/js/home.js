@@ -4,20 +4,27 @@ window.addEventListener("load", () => {
     function clock() {
         const today = new Date();
 
-        const month = today.getMonth() + 1;
-        const day = today.getDate();
+        // Get date components
+        const month = (today.getMonth() + 1).toString().padStart(2, "0");
+        const day = today.getDate().toString().padStart(2, "0");
         const year = today.getFullYear();
 
-        const hour = today.getHours();
-        const minute = today.getMinutes();
+        // Get time components
+        let hour = today.getHours();
+        const minute = today.getMinutes().toString().padStart(2, "0");
 
-        const hourTime = hour > 12 ? hour - 12 : hour;
-        const ampm = hour < 12 ? "AM" : "PM";
+        // Determine AM/PM and convert to 12-hour format
+        const ampm = hour >= 12 ? "PM" : "AM";
+        hour = hour % 12 || 12; // Converts hour '0' to '12'
 
+        // Construct date and time strings
         const date = `${month}/${day}/${year}`;
-        const time = `${hourTime}:${minute} ${ampm}`;
+        const time = `${hour}:${minute} ${ampm}`;
 
+        // Update the clock display
         document.getElementById("clock").innerHTML = `${date} ${time}`;
+
+        // Update the clock every second
         setTimeout(clock, 1000);
     }
 });

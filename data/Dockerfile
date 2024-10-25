@@ -19,7 +19,7 @@ RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Stage 2: Final stage - slimmer image
-FROM python:3.11-bookworm
+FROM python:3.11-slim-bookworm
 
 # Set working directory
 WORKDIR /app

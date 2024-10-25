@@ -1,5 +1,4 @@
 import json
-import asyncio
 import aiosnmp  # type: ignore
 import aiofiles  # type: ignore
 from utils.logging_setup import logger
@@ -126,5 +125,3 @@ async def start_up(path=PATH):
     async with aiofiles.open(path, 'w') as file:
         await file.write(json.dumps(system_info, indent=4))
 
-if __name__ == "__main__":
-    asyncio.run(start_up())

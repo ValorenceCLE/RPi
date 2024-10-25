@@ -42,7 +42,12 @@ document.addEventListener('DOMContentLoaded', async function () {
             chart: {
                 type: 'spline', // Use 'spline' for smoother lines
                 backgroundColor: '#fff',
-                zoomType: 'x' // Enable zooming on the x-axis
+                zoomType: 'x', // Enable zooming on the x-axis
+                events: {
+                    load: function () {
+                        this.reflow()
+                    }
+                },
             },
             title: {
                 text: null // Remove chart title
@@ -59,7 +64,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                     }
                 },
                 title: {
-                    text: 'Timestamp'
+                    text: 'Timestamp',
+                    align: 'center',
                 }
             },
             yAxis: {

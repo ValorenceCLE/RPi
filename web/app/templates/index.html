@@ -8,10 +8,10 @@
             <div class="col-12 col-md-9">
                 <div class="card" id="Header">
                     <div class="card-header text-center" id="Head">
-                        <h2 class="mb-0">{{ system_name }}</h2> <!-- DYNAMIC NAMING -->
+                        <h2 class="mb-0">{{ page_header }}</h2> <!-- DYNAMIC NAMING -->
                     </div>
                     <div class="card-body text-center text-dark">
-                        <p class="card-text text-dark opacity-75" id="Head-Content">{{ model }} | {{ serial_number }} | Uptime: {{ uptime }}</p>
+                        <p class="card-text text-dark opacity-75" id="Head-Content">{{ var1 }} | {{ var2 }} | {{ var3 }}</p>
                     </div>
                 </div>
             </div>
@@ -48,6 +48,9 @@
                             <li><a class="dropdown-item" data-value="2d">2 Days</a></li>
                         </ul>
                         </div>
+                        <span data-bs-toggle="tooltip" data-bs-placement="right" title="Here's some amazing content.">
+                            <i class="bi bi-question-circle" style="font-size: 1.5rem;"></i>
+                        </span>
                     </div>
                     <!-- Title Absolutely Centered Over the Webpage -->
                     <div class="card-body">

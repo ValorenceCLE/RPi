@@ -25,14 +25,34 @@ class WebGrapher:
         self.client = InfluxDBClientAsync(url=self.url, token=self.token, org=self.org)
         self.query_api = QueryApiAsync(self.client)
         
+    def generate_query(self, page_name: str, timeframe: str) -> str:
+        if timeframe == '1h':
+            aggregation = None
+        elif timeframe == '3h':
+            aggregation = '1m'
+        elif timeframe == '6h':
+            aggregation = '2m'
+        elif timeframe == '12h':
+            aggregation = '4m'
+        elif timeframe == '1d':
+            aggregation = '8m'
+        elif timeframe == '2d':
+            aggregation = '16m'
+            
+        base_query = f"""
+        from(bucket: "{self.bucket}")
+            |> range(start: -{timeframe})
+            |> filter(fn: (r) => r._measurement == "{page_name}")
+        """
+        if aggregation:
+            base_query += f"""
+            |> aggregateWindow(every: {aggregation}, fn: mean, createEmpty: false)
+            """        
+        return base_query
+    
     async def base_results(self, page_name: str, time_frame: str) -> List[Dict]:
-        query = f'''
-            from(bucket: "{self.bucket}")
-                |> range(start: -{time_frame})
-                |> filter(fn: (r) => r._measurement == "{page_name}")
-        '''
         try:
-            results = await self.query_api.query(query, org=self.org)
+            results = await self.query_api.query(self.generate_query(page_name, time_frame), org=self.org)
             aggregated = {}
             for table in results:
                 for record in table.records:
