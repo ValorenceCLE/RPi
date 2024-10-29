@@ -1,7 +1,9 @@
 version: '3.8'
 
 services:
-  influxdb:
+
+
+  influxdb: # High Performance Time Series Database
     image: influxdb:2.0
     volumes:
       - influxdb_data:/var/lib/influxdb2 # Persist data
@@ -16,7 +18,8 @@ services:
       retries: 10 # Retry 10 times, with all of this it can sometimes take a second but it will ensure the service is up and no problems
     restart: always # Restart the service if it fails, this is important to keep the service up and running
   
-  redis:
+
+  redis: # In-memory data structure store, used for rapid in memory processing
     image: redis
     restart: always # Restart the service if it fails
     healthcheck:
@@ -24,8 +27,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-  
-  nginx:
+
+
+  nginx: # Web server, used to serve the FastAPI application
     image: nginx:1.27.2 
     ports:
       - "8000:8000"  # FastAPI HTTP port
@@ -38,6 +42,7 @@ services:
       - webapp # Wait for the webapp to be up and running, webapp needs to make certs before NGINX can start
     restart: always  # Restart the service if it fails
       
+
   webapp: # Based on python image, with the target webapp. This is the FastAPI application
     build:
       context: . # Use the current directory
@@ -55,12 +60,6 @@ services:
       - ./etc/app_data:/app_data # hashs
       - ./etc/certs:/etc/nginx/certs  # Share certificates with NGINX
       - ./web/app:/app # Mount the local directory for easier development
-
-    # environment: # We might want to clean these up
-    #   - LOG_FILE=/var/log/app/web.log # This might not be needed, but it's good to have
-    #   - INFLUXDB_URL=http://influxdb:8086 
-    #   - REDIS_URL=redis://redis:6379
-
     env_file: # Environment variables for passwords and database initialization
       - ./config/auth.env
       - ./config/influxdb.env
@@ -70,7 +69,8 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  data_collection:
+
+  data_collection: # Data collection service, used to collect data from the sensors/network
     build: # Build the data collection service
       context: . 
       dockerfile: Dockerfile # Use the Dockerfile in the current directory
@@ -86,15 +86,9 @@ services:
       - ./etc/logs:/var/log/app # Log files
       - ./etc/device_info:/device_info # Device information
       - ./data/app:/app # Mount the local directory for easier development
-
-    # environment:
-    #   - LOG_FILE=/var/log/app/data.log
-    #   - INFLUXDB_URL=http://influxdb:8086
-    #   - REDIS_URL=redis://redis:6379
-    
     env_file:
-      - ./config/influxdb.env
-    logging:
+      - ./config/influxdb.env # Environment variables for passwords and database initialization
+    logging: # Logging configuration, this is important to keep the logs from filling up the disk. Currently using custom logging
       driver: "json-file"
       options:
         max-size: "10m"
