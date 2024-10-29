@@ -19,7 +19,7 @@ class InfluxClient:
             if cls._instance is None:
                 token = settings.TOKEN
                 org = settings.ORG
-                url = settings.DB_URL
+                url = settings.INFLUXDB_URL
                 try:
                     client = InfluxDBClientAsync(url=url, token=token, org=org)
                     cls._instance = client

@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 import asyncio
-import aiosnmp #type: ignore
+import aiosnmp 
 from utils.logging_setup import logger
 from utils.config import settings
 from utils.clients import RedisClient
@@ -18,7 +18,7 @@ class CellularMetrics:
         self.host = settings.HOST
         self.null = settings.NULL
         self.collection_interval = settings.COLLECTION_INTERVAL # Interval in seconds between SNMP requests
-        self.oid_mappings = settings.OID_MAPPINGS
+        self.oid_mappings = settings.CELLULAR_OIDS
         
         
     async def async_init(self):
