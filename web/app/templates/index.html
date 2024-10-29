@@ -16,7 +16,7 @@
                 </div>
             </div>
         </div>
-        <div class="row justify-content-center mt-4 m-0 ">
+        <div class="row justify-content-center mt-4 m-0" id="gauge">
             <div class="col-sm-10">
                 <div class="card p-2">
                     <figure class="row justify-content-between">
@@ -29,28 +29,32 @@
                 </div>
             </div>
         </div>
-        <div class="row justify-content-center mt-4">
+        <div class="row justify-content-center mt-4" id="chart">
             <div class="col-10 mb-4">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h4 class="chart-title">{{ chart_name }}</h4>
                         <!-- Dropdown for Time Frame Selection -->
                         <div class="dropdown">
-                        <button class="btn dropdown-toggle" type="button" id="lineTimeFrameSelector" data-bs-toggle="dropdown" aria-expanded="false">
-                            Time Frame
-                        </button>
-                        <ul class="dropdown-menu" aria-labelledby="lineTimeFrameSelector">
-                            <li><a class="dropdown-item" data-value="1h">1 Hour</a></li>
-                            <li><a class="dropdown-item" data-value="3h">3 Hours</a></li>
-                            <li><a class="dropdown-item" data-value="6h">6 Hours</a></li>
-                            <li><a class="dropdown-item" data-value="12h">12 Hours</a></li>
-                            <li><a class="dropdown-item" data-value="1d">1 Day</a></li>
-                            <li><a class="dropdown-item" data-value="2d">2 Days</a></li>
-                        </ul>
+                            <button class="btn dropdown-toggle" type="button" id="lineTimeFrameSelector" data-bs-toggle="dropdown" aria-expanded="false">
+                                Time Frame
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="lineTimeFrameSelector">
+                                <li><a class="dropdown-item" data-value="1h">1 Hour</a></li>
+                                <li><a class="dropdown-item" data-value="3h">3 Hours</a></li>
+                                <li><a class="dropdown-item" data-value="6h">6 Hours</a></li>
+                                <li><a class="dropdown-item" data-value="12h">12 Hours</a></li>
+                                <li><a class="dropdown-item" data-value="1d">1 Day</a></li>
+                                <li><a class="dropdown-item" data-value="2d">2 Days</a></li>
+                            </ul>
                         </div>
-                        <span data-bs-toggle="tooltip" data-bs-placement="right" title="Here's some amazing content.">
-                            <i class="bi bi-question-circle" style="font-size: 1.5rem;"></i>
-                        </span>
+                        <!-- Right aligned Info Icon with Tooltip -->
+                        <div role="button" class="tooltip-icon" data-bs-toggle="tooltip" data-bs-title="See database dashboard for more detailed analysis.">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-info-circle" id="infoIcon" viewBox="0 0 16 16">
+                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                                <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                            </svg>
+                        </div>
                     </div>
                     <!-- Title Absolutely Centered Over the Webpage -->
                     <div class="card-body">
@@ -60,18 +64,9 @@
             </div>
         </div>
     </main>
-    
-    <br>
-    <br>
-
 </div>
 <script src="/static/js/gauge.js"></script>
 <script src="/static/js/line.js"></script>
-<script src="https://code.highcharts.com/10.3.3/highcharts.js"></script>
-<script src="https://code.highcharts.com/10.3.3/highcharts-more.js"></script>
-<script src="https://code.highcharts.com/10.3.3/modules/solid-gauge.js"></script>
-<script src="https://code.highcharts.com/10.3.3/modules/boost.js"></script>
-<script src="https://code.highcharts.com/10.3.3/modules/accessibility.js"></script>
-<script src="https://code.highcharts.com/10.3.3/modules/exporting.js"></script>
-<script src="https://code.highcharts.com/10.3.3/modules/export-data.js"></script>
+<script src="/static/js/index.js"></script>
+
 {% endblock %}

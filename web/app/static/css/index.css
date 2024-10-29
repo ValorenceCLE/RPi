@@ -69,3 +69,18 @@ a:hover, a:focus {
     font-weight: bold;
     transition: transform 0.3s;
 }
+.tooltip-icon {
+    position: relative;  /* Ensure ::before is positioned relative to the icon */
+    display: inline-block;
+    cursor: pointer;
+}
+.tooltip-icon::before {
+    content: ""; 
+    position: absolute;
+    top: -10px;  /* Adjust to increase hover area above the icon */
+    right: -10px; /* Increase hover area on the right */
+    bottom: -10px; /* Increase hover area below */
+    left: -10px; /* Increase hover area on the left */
+    background: transparent;
+}
+

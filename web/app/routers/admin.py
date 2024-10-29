@@ -35,7 +35,7 @@ async def system_page(request: Request, user: dict = Depends(get_current_user)):
     if not is_admin(user): # Check if the user is an admin
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
     # Pass both username and role to the template
-    
+    serial = info["serial"]
     return templates.TemplateResponse("index.html", {
         "request": request,
         "username": user["username"],
@@ -43,7 +43,7 @@ async def system_page(request: Request, user: dict = Depends(get_current_user)):
         "title": "System Info",
         "page_header": "System Performance", 
         "var1": info["system_name"], # Model, e.g Logan PD DPM #3
-        "var2": info["serial"], # Serial Number
+        "var2": f"Serial Number: {serial}", # Serial Number
         "var3": f"Uptime: {uptime}", # Uptime
         "chart_name": "System Power Consumption",
         "gauges": [
@@ -58,6 +58,7 @@ async def system_page(request: Request, user: dict = Depends(get_current_user)):
 async def router_page(request: Request, user: dict = Depends(get_current_user)):
     info = request.app.state.device_info["Router"] # Get the Router info from the app state
     uptime = await router_uptime() # Get the Router uptime
+    serial = info["serial"]
     if user is None:
         return RedirectResponse(url="/login")
     if not is_admin(user):
@@ -70,7 +71,7 @@ async def router_page(request: Request, user: dict = Depends(get_current_user)):
         "title": "Router Info", 
         "page_header": "Router Performance",
         "var1": info["model"],
-        "var2": info["serial"],
+        "var2": f"Serial Number: {serial}",
         "var3": f"Uptime: {uptime}",
         "chart_name": "Router Power Consumption",
         "gauges": [
@@ -85,6 +86,7 @@ async def router_page(request: Request, user: dict = Depends(get_current_user)):
 async def camera_page(request: Request, user: dict = Depends(get_current_user)):
     info = request.app.state.device_info["Camera"] # Get the Camera info from the app state
     uptime = await camera_uptime() # Get the Camera uptime
+    serial = info["serial"]
     if user is None:
         return RedirectResponse(url="/login")
     if not is_admin(user):
@@ -97,7 +99,7 @@ async def camera_page(request: Request, user: dict = Depends(get_current_user)):
         "title": "Camera Info",  
         "page_header": "Camera Performance",
         "var1": info["model"],
-        "var2": info["serial"],
+        "var2": f"Serial Number: {serial}",
         "var3": f"Uptime: {uptime}",
         "chart_name": "Camera Power Consumption",
         "gauges": [
@@ -122,7 +124,7 @@ async def network_page(request: Request, user: dict = Depends(get_current_user))
         "role": user["role"],
         "title": "Network Info",  
         "page_header": "Network Performance",
-        "var1": info["model"],
+        "var1": "Verizon", # Carrier
         "var2": info["ssid"],
         "var3": info["firmware"],
         "chart_name": "Cellular Signal Strength",

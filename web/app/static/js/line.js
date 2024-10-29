@@ -64,8 +64,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                     }
                 },
                 title: {
-                    text: 'Timestamp',
-                    align: 'center',
+                    text: null
                 }
             },
             yAxis: {

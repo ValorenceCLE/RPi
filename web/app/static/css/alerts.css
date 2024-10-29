@@ -43,10 +43,6 @@ th.sorted-desc::after {
     content: " ↓";
     color: white;
 }
-#loadMoreBtn {
-    display: inline-block;
-    margin: 0 auto;
-}
 .text-center .btn-secondary {
     margin: auto;
     display: inline-block;
@@ -70,4 +66,12 @@ th.sorted-desc::after {
 .form-select, .form-label, .form-control, option{
     font-weight: bold;
     font-size: large;
+}
+#loadMoreBtn {
+    margin: 0 auto;
+    display: none;
+}
+#resetBtn {
+    margin: 0 auto;
+    display: none;
 }
