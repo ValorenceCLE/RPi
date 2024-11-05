@@ -1,0 +1,121 @@
+{
+    "system": {
+      "system_name": "Default System",
+      "agency": "Valorence",
+      "product": "DPM",
+      "version": "1.0",
+      "ntp_server": "time.google.com",
+      "syslog_server": "44.223.77.239",
+      "emails": ["landon.bell@valorence.com", "landon@covertlawenforcement.com"]
+    },
+    "relays": {
+      "relay1": {
+        "name": "Router",
+        "pin": 21,
+        "address": "0x40",
+        "boot_power": true,
+        "monitor": true,
+        "schedule": false,
+        "rules": {
+          "1": {
+            "field": "watts",
+            "condition": "<",
+            "value": 3,
+            "actions": [
+              {"type": "email", "message": "Relay1 Volts below threshold"},
+              {"type": "log", "message": "Relay1 Volts below threshold"}
+            ]
+          }
+        }
+      },
+      "relay2": {
+        "name": "Camera",
+        "pin": 20,
+        "address": "0x41",
+        "boot_power": true,
+        "monitor": true,
+        "schedule": false,
+        "rules": {
+          "1": {
+            "field": "watts",
+            "condition": ">",
+            "value": 12,
+            "actions": [
+              {"type": "toggle_relay", "target": "relay3", "state": "on"},
+              {"type": "log", "message": "Relay2 Volts above threshold"}
+            ]
+          }
+        }
+      },
+      "relay3": {
+        "name": "Strobe Light",
+        "pin": 16,
+        "address": "0x42",
+        "boot_power": false,
+        "monitor": false,
+        "schedule": false,
+        "rules": false
+      },
+      "relay4": {
+        "name": "Fan",
+        "pin": 12,
+        "address": "0x43",
+        "boot_power": false,
+        "monitor": false,
+        "schedule": false,
+        "rules": false
+      },
+      "relay5": {
+        "name": "Aux1",
+        "pin": 13,
+        "address": "0x44",
+        "boot_power": false,
+        "monitor": false,
+        "schedule": false,
+        "rules": false
+      },
+      "relay6": {
+        "name": "Aux2",
+        "pin": 14,
+        "address": "0x45",
+        "boot_power": true,
+        "monitor": true,
+        "schedule": false,
+        "rules": {
+          "1": {
+            "field": "watts",
+            "condition": ">",
+            "value": 12,
+            "actions": [
+              {"type": "log", "message": "Relay6 Volts above threshold"}
+            ]
+          }
+        }
+      },
+      "relay7": {
+        "name": "Aux3",
+        "pin": 15,
+        "address": "0x46",
+        "boot_power": false,
+        "monitor": false,
+        "schedule": false,
+        "rules": false
+      },
+      "relay8": {
+        "name": "Aux4",
+        "pin": 16,
+        "address": "0x47",
+        "boot_power": false,
+        "monitor": false,
+        "schedule": false,
+        "rules": false
+      }
+    },
+    "validation": {
+      "allowed_fields": ["volts", "amps", "watts"],
+      "allowed_conditions": [">", "<", ">=", "<=", "==", "!="],
+      "allowed_actions": ["log", "email", "mqtt", "toggle_relay", "pulse_relay"],
+      "time_format": "HH:MM"
+    }
+}
+  

@@ -39,26 +39,37 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.middleware("http")
 async def security_headers_middleware(request: Request, call_next):
     response: Response = await call_next(request)
-    response.headers['Content-Security-Policy'] = (
-        "default-src 'self'; "
-        "script-src 'self' https://cdn.jsdelivr.net https://code.highcharts.com; "
-        "style-src 'self' https://cdn.jsdelivr.net; "
-        "img-src 'self' data:; "
-        "font-src 'self' https://cdn.jsdelivr.net; "
-        "connect-src 'self' wss:; "  # Allow any secure WebSocket connection
-        "frame-src 'self'; "
-    )
+    
+    # Determine if the request is for documentation
+    if request.url.path.startswith("/docs") or request.url.path.startswith("/redoc"):
+        # Relaxed CSP for documentation pages
+        response.headers['Content-Security-Policy'] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.highcharts.com; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "img-src 'self' data: https://fastapi.tiangolo.com; "
+            "font-src 'self' https://cdn.jsdelivr.net; "
+            "connect-src 'self' wss:; "
+            "frame-src 'self'; "
+        )
+    else:
+        # Strict CSP for all other routes
+        response.headers['Content-Security-Policy'] = (
+            "default-src 'self'; "
+            "script-src 'self' https://cdn.jsdelivr.net https://code.highcharts.com; "
+            "style-src 'self' https://cdn.jsdelivr.net; "
+            "img-src 'self' data:; "
+            "font-src 'self' https://cdn.jsdelivr.net; "
+            "connect-src 'self' wss:; "
+            "frame-src 'self'; "
+        )
+    
+    # Common security headers
     response.headers['X-Frame-Options'] = "DENY"
     response.headers['X-Content-Type-Options'] = "nosniff"
     response.headers['Strict-Transport-Security'] = "max-age=31536000; includeSubDomains"
     response.headers['Referrer-Policy'] = "no-referrer"
-    return response
-
-@app.middleware("http")
-async def logging_middleware(request: Request, call_next):
-    logger.info(f"Received request: {request.method} {request.url}")
-    response = await call_next(request)
-    logger.info(f"Sent response: {response.status_code}")
+    
     return response
 
 # Include your routers
