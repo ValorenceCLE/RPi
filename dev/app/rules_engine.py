@@ -1,10 +1,8 @@
 import asyncio
 from typing import Dict, List
 from app.validator import Action, Rule
-import logging
-
-# Set up logging
-logger = logging.getLogger(__name__)
+from app.utils.logging_setup import local_logger as logger
+from app.utils.logging_setup import central_logger as syslog
 
 class RulesEngine:
     def __init__(self, relay_id: str, rules: Dict[str, Rule]):
@@ -43,7 +41,7 @@ class RulesEngine:
         for action in actions:
             if action.type == "log":
                 message = action.message or f"Rule triggered in {self.relay_id}."
-                logger.info(message)
+                syslog.info(message)
             elif action.type == "email":
                 message = action.message or f"Rule triggered in {self.relay_id}."
                 # Implement email sending logic here

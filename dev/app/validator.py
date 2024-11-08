@@ -1,17 +1,13 @@
 import json
 import os
 from typing import Dict, Any, List, Optional, Union
-from pydantic import BaseModel, ValidationError, Field
-from pydantic import field_validator, model_validator
+from pydantic import BaseModel, ValidationError
+from pydantic import field_validator
 import logging
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
-handler = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+logger = logging.getLogger('validator')
 
+# Define the global variable to store the validation config
 VALIDATION_CONFIG = None
 
 # Load the validation config
@@ -24,8 +20,9 @@ class ValidationConfig(BaseModel):
 # Load the system config    
 class SystemConfig(BaseModel):
     system_name: str
-    agency: str
-    product: str
+    system_id: Optional[str] = None # Allow none
+    agency: Optional[str] = None # Allow none
+    product: Optional[str] = None # Allow none
     version: str
     ntp_server: str
     syslog_server: str
@@ -162,10 +159,15 @@ def handle_validation_errors(config_data: dict, validation_error: ValidationErro
         raise e # Raise the error if re-validation fails, Need to make sure this is not terminating the program
     return config
 
-def load_and_validate_config() -> FullConfig:
+def validate_config() -> FullConfig:
     global VALIDATION_CONFIG
     # Load the default config
     default_config_data = load_json_file('dev/default_config.json')
+    
+    # Get the Raspberry Pi Serial Number
+    default_system_id = pi_serial()
+    default_config_data['system']['system_id'] = default_system_id
+    
     # Set VALIDATION_CONFIG from the default config
     VALIDATION_CONFIG = ValidationConfig(**default_config_data.get('validation', {}))
     
@@ -178,6 +180,13 @@ def load_and_validate_config() -> FullConfig:
     # Merge the default and custom configs
     merged_config_data = merge_configs(default_config_data, custom_config_data)
     
+    # After merging configs, check system_id
+    system_id = merged_config_data['system'].get('system_id')
+    if system_id is None:
+        system_id = pi_serial()
+        merged_config_data['system']['system_id'] = system_id
+    
+    
     # Validate the merged config
     try:
         config = FullConfig(**merged_config_data)
@@ -187,4 +196,17 @@ def load_and_validate_config() -> FullConfig:
         config = handle_validation_errors(merged_config_data, e)        
     return config
 
-    
+
+# Function to get the Raspberry Pi Serial Number, used as the default system_id if not provided
+def pi_serial():
+    try:
+        with open('/proc/cpuinfo', 'r') as f:
+            for line in f:
+                if line.startswith('Serial'):
+                    serial = line.strip().split(':')[1].strip()
+                    return serial
+    except Exception as e:
+        print(f"Unable to read serial number: {e}")
+    return "UNKNOWN_SERIAL"
+
+system_id = pi_serial()

@@ -1,15 +1,14 @@
 import asyncio
-import logging
 from typing import Dict
 from app.validator import RelayConfig
 from app.rules_engine import RulesEngine
 from app.schedule_engine import ScheduleEngine
+from app.utils.logging_setup import local_logger as logger
+from app.utils.logging_setup import central_logger as syslog
 
 # Import the sensor libraries
 import board
 import adafruit_ina260
-
-logger = logging.getLogger(__name__)
 
 class RelayMonitor:
     """
@@ -41,6 +40,7 @@ class RelayMonitor:
         """
         self.relay_id = relay_id # Use relay identifier, e.g: 'relay1'
         self.config = relay_config
+        self.name = relay_config.name
         self.pin = relay_config.pin
         self.address = int(relay_config.address, 16)
         self.boot_power = relay_config.boot_power
@@ -55,15 +55,11 @@ class RelayMonitor:
         self.sensor = None
     
     async def start(self):
-        """
-        Starts the relay monitor by initializing the I2C interface and sensor,
-        and adding tasks for schedule management and data collection.
-        """
         tasks = []
         if self.schedule_engine.is_enabled():
             tasks.append(self.manage_schedule())
         else:
-            logger.info(f"Schedule disabled for {self.relay_id}")
+            logger.debug(f"Schedule disabled for {self.relay_id}")
         if self.monitor:
             try:
                 self.i2c = board.I2C()
@@ -73,7 +69,7 @@ class RelayMonitor:
                 logger.error(f"Error initializing sensor for relay {self.relay_id}: {e}")
                 self.monitor = False # Disable monitoring if sensor initialization fails
         else:
-            logger.info(f"Monitoring disabled for {self.relay_id}")
+            logger.debug(f"Monitoring disabled for {self.relay_id}")
         if tasks:
             await asyncio.gather(*tasks)
         else:
@@ -119,5 +115,5 @@ class RelayMonitor:
         volts = await asyncio.to_thread(lambda: round(self.sensor.voltage, 2))
         watts = await asyncio.to_thread(lambda: round(self.sensor.power / 1000, 2))
         amps = await asyncio.to_thread(lambda: round(self.sensor.current / 1000, 2))
-        print(f"Relay {self.relay_id} data collected: Volts={volts}, Watts={watts}, Amps={amps}")
+        syslog.info(f"{self.name} data collected: Volts={volts}, Watts={watts}, Amps={amps}")
         return {"relay": self.relay_id, "volts": volts, "amps": amps, "watts": watts}

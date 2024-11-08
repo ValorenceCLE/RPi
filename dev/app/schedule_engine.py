@@ -1,10 +1,7 @@
 import datetime
 from typing import Optional, Union
 from app.validator import Schedule
-import logging
-
-# Set up logging
-logger = logging.getLogger(__name__)
+from app.utils.logging_setup import local_logger as logger
 
 class ScheduleEngine:
     def __init__(self, relay_id: str, schedule: Optional[Union[Schedule, bool]]):

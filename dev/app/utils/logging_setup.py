@@ -1,8 +1,16 @@
 import logging
-import asyncio
+import logging.handlers
 import sys
+import socket
+import time
+from app.validator import validate_config
 
-# Set up a local logger to log messages to the console/file for more system level messages
+# Load the config
+config = validate_config()
+system_id = config.system.system_id
+syslog_server = config.system.syslog_server
+
+# Set up a local logger to log messages to the console/file for system-level messages
 local_logger = logging.getLogger("local_logger")
 local_logger.setLevel(logging.INFO)
 
@@ -18,54 +26,59 @@ file_formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s (%(f
 file_handler.setFormatter(file_formatter)
 local_logger.addHandler(file_handler)
 
-# Central logger to log specific messages to a AWS EC2 instance set up as a rsylog server
+# Central logger to log specific messages to the AWS EC2 rsyslog server
 central_logger = logging.getLogger("central_logger")
 central_logger.setLevel(logging.INFO)
 
-# Asynchronous handler for sending messages to the central logger over UDP
-class AsyncUDPSyslogHandler(logging.Handler):
-    def __init__(self, host, port, loop):
-        super().__init__()
-        self.host = host
-        self.port = port
-        self.loop = loop
-        self.transport = None
-        self.ready = asyncio.Event()
-        
-        # Start the UDP connection
-        asyncio.create_task(self._connect())
-    
-    async def _connect(self):
-        transport, protocol = await self.loop.create_datagram_endpoint(
-            lambda: asyncio.DatagramProtocol(),
-            remote_addr=(self.host, self.port)
-        )
-        self.transport = transport
-        self.ready.set()
-    
+class CustomSysLogHandler(logging.handlers.SysLogHandler):
+    def __init__(self, address=('localhost', 514), facility=logging.handlers.SysLogHandler.LOG_USER, hostname=None):
+        super().__init__(address=address, facility=facility, socktype=socket.SOCK_DGRAM)
+        self.hostname = hostname or socket.gethostname()
+        # Explicitly create the socket to avoid any issues with delayed initialization
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
     def emit(self, record):
         try:
+            # Format the message according to RFC 3164
             msg = self.format(record)
-            if not self.transport:
-                # Wait until the transport is ready
-                asyncio.create_task(self._wait_and_send(msg))
-            else:
-                self.transport.sendto(msg.encode('utf-8'))
-        except Exception:
+            # PRI part
+            pri = '<%d>' % self.encodePriority(self.facility, self.mapPriority(record.levelname))
+            # Timestamp in the format: 'Mmm dd HH:MM:SS'
+            timestamp = time.strftime('%b %d %H:%M:%S', time.localtime(record.created))
+            # Hostname (system_id)
+            hostname = self.hostname
+            # App name (logger name)
+            app_name = record.name
+            # Message content
+            message = msg
+
+            # Full syslog message in RFC 3164 format
+            syslog_message = f"{pri}{timestamp} {hostname} {app_name}: {message}\n"
+
+            # Ensure message is in bytes format for transmission
+            if isinstance(syslog_message, str):
+                syslog_message = syslog_message.encode('utf-8')
+
+            # Send the message to the syslog server
+            self.socket.sendto(syslog_message, self.address)
+        except Exception as e:
             self.handleError(record)
-                
-    async def _wait_and_send(self, msg):
-        await self.ready.wait()
-        self.transport.sendto(msg.encode('utf-8'))
-    
+            # Log to local logger in case of errors
+            local_logger.error(f"Failed to send syslog message: {e}")
+
     def close(self):
-        if self.transport:
-            self.transport.close()
+        if self.socket:
+            self.socket.close()
         super().close()
-        
-# Set up the central logger handler
-loop = asyncio.get_event_loop()
-udp_handler = AsyncUDPSyslogHandler('44.223.77.239', 514, loop)
-udp_formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+
+# Set up the central logger handler using CustomSysLogHandler
+udp_handler = CustomSysLogHandler(
+    address=(syslog_server, 514),
+    hostname=system_id
+)
+
+# Set the formatter for the central logger handler
+udp_formatter = logging.Formatter('%(message)s')
 udp_handler.setFormatter(udp_formatter)
 central_logger.addHandler(udp_handler)
+

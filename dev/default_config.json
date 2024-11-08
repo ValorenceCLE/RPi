@@ -1,6 +1,7 @@
 {
     "system": {
       "system_name": "Default System",
+      "system_id": null,
       "agency": "Valorence",
       "product": "DPM",
       "version": "1.0",
@@ -23,7 +24,7 @@
             "value": 3,
             "actions": [
               {"type": "email", "message": "Relay1 Volts below threshold"},
-              {"type": "log", "message": "Relay1 Volts below threshold"}
+              {"type": "log", "message": "Router Watts below threshold"}
             ]
           }
         }
@@ -42,7 +43,7 @@
             "value": 12,
             "actions": [
               {"type": "toggle_relay", "target": "relay3", "state": "on"},
-              {"type": "log", "message": "Relay2 Volts above threshold"}
+              {"type": "log", "message": "Camera Watts below threshold"}
             ]
           }
         }
@@ -87,7 +88,7 @@
             "condition": ">",
             "value": 12,
             "actions": [
-              {"type": "log", "message": "Relay6 Volts above threshold"}
+              {"type": "log", "message": "System Watts below threshold"}
             ]
           }
         }

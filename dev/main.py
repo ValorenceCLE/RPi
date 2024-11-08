@@ -1,13 +1,13 @@
 import asyncio
-from app.validator import load_and_validate_config, Schedule
+from app.validator import validate_config, Schedule
 from app.relay_monitor import RelayMonitor
-import logging
-
-logger = logging.getLogger(__name__)
+from app.utils.logging_setup import local_logger as logger
+from app.utils.logging_setup import central_logger as syslog
 
 async def main():
-    config = load_and_validate_config()
+    config = validate_config()
     tasks = []
+    
     for relay_id, relay_config in config.relays.items():
         # Decide whether to create a RelayMonitor instance based on monitoring or scheduling
         should_monitor = relay_config.monitor
@@ -24,4 +24,6 @@ async def main():
     else:
         logger.warning("No relays are configured for monitoring or scheduling.")
 if __name__ == "__main__":
+    logger.info("Starting the relay controller.")
+    syslog.info("Starting the relay controller.")
     asyncio.run(main())
