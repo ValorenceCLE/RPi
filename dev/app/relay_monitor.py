@@ -5,31 +5,10 @@ from app.rules_engine import RulesEngine
 from app.schedule_engine import ScheduleEngine
 from app.utils.logging_setup import local_logger as logger
 from app.utils.logging_setup import central_logger as syslog
-
-# Import the sensor libraries
 import board
 import adafruit_ina260
 
 class RelayMonitor:
-    """
-    A class to monitor and manage a relay(s) based on the configuration provided in the config file.
-    
-    Attributes:
-        relay_id (str): The relay identifier, e.g: 'relay1'
-        config (RelayConfig): The relay configuration object
-        pin (int): The pin number for the relay(s) (immutable, each relay has a unique/defined pin)
-        address (int): The I2C address for the sensor (immutable, each relay has a unique/defined address)
-        boot_power (bool): Should the relay(s) be powered on boot? (true/false)
-        monitor (bool): Should the relay(s) be monitored? (true/false)
-        schedule (Schedule): The schedule for the relay(s) (if any)
-        rules (Dict[str, Rule]) see config file to see the expected format: The rules defined for the relay(s) (if any)
-        collection_interval (int): The data collection interval in seconds
-        rules_engine (RulesEngine): The rules engine instance for rule evaluation, dynamically initialized and managed for each relay(s)
-        schedule_engine (ScheduleEngine): The schedule engine instance for schedule management, dynamically initialized and managed for each relay(s)
-        state (bool): The current state of the relay(s)
-        i2c (board.I2C): The I2C bus instance for the sensor
-        sensor (adafruit_ina260.INA260): The sensor instance for the relay(s)
-    """
     def __init__(self, relay_id: str, relay_config: RelayConfig):
         """
         Initializes the RelayMonitor with the given relay ID and configuration.
@@ -38,21 +17,21 @@ class RelayMonitor:
             relay_id (str): The identifier for the relay.
             relay_config (RelayConfig): The configuration for the relay.
         """
-        self.relay_id = relay_id # Use relay identifier, e.g: 'relay1'
-        self.config = relay_config
-        self.name = relay_config.name
-        self.pin = relay_config.pin
-        self.address = int(relay_config.address, 16)
-        self.boot_power = relay_config.boot_power
-        self.monitor = relay_config.monitor
-        self.schedule = relay_config.schedule
-        self.rules = relay_config.rules
-        self.collection_interval = 30
-        self.rules_engine = RulesEngine(self.relay_id, self.rules)
-        self.schedule_engine = ScheduleEngine(self.relay_id, self.schedule)
-        self.state = self.boot_power
-        self.i2c = None
-        self.sensor = None
+        self.relay_id = relay_id # relay_id (str): The relay identifier, e.g: 'relay1'
+        self.config = relay_config # config (RelayConfig): The relay configuration object
+        self.name = relay_config.name # name (str): The name of the relay, e.g: 'Router, Aux1...'
+        self.pin = relay_config.pin # pin (int): The pin number for the relay(s) (immutable, each relay has a unique/defined pin)
+        self.address = int(relay_config.address, 16) #  address (int): The I2C address for the sensor (immutable, each relay has a unique/defined address)
+        self.boot_power = relay_config.boot_power # boot_power (bool): Should the relay(s) be powered on boot? (true/false). Maybe remove since schedule can handle this
+        self.monitor = relay_config.monitor # monitor (bool): Should the relay(s) be monitored i.e collect data? (true/false)
+        self.schedule = relay_config.schedule # schedule (Schedule): The schedule for the relay(s) (if any)
+        self.rules = relay_config.rules # rules (Dict[str, Rule]): The rules defined for the relay(s) (if any)
+        self.collection_interval = 30 # collection_interval (int): The data collection interval in seconds
+        self.rules_engine = RulesEngine(self.relay_id, self.rules) # rules_engine (RulesEngine): The rules engine instance for rule evaluation
+        self.schedule_engine = ScheduleEngine(self.relay_id, self.schedule) # schedule_engine (ScheduleEngine): The schedule engine instance for schedule management
+        self.state = self.boot_power # state (bool): The current state of the relay(s) (default to boot_power)
+        self.i2c = None # i2c (board.I2C): The I2C bus instance for the sensor
+        self.sensor = None # sensor (adafruit_ina260.INA260): The sensor instance for the relay(s)
     
     async def start(self):
         tasks = []

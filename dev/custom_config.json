@@ -12,7 +12,7 @@
     "relays": {
       "relay1": {
         "name": "Router",
-        "pin": 21,
+        "pin": 26,
         "address": "0x40",
         "boot_power": true,
         "monitor": true,
@@ -23,6 +23,7 @@
             "condition": "<",
             "value": 3,
             "actions": [
+              {"type": "email", "message": "Router Watts below threshold"},
               {"type": "log", "message": "Router Watts below threshold"}
             ]
           }
@@ -30,7 +31,7 @@
       },
       "relay2": {
         "name": "Camera",
-        "pin": 20,
+        "pin": 13,
         "address": "0x41",
         "boot_power": true,
         "monitor": true,
@@ -47,8 +48,8 @@
         }
       },
       "relay3": {
-        "name": "Strobe Light",
-        "pin": 16,
+        "name": "Aux1",
+        "pin": 6,
         "address": "0x42",
         "boot_power": false,
         "monitor": false,
@@ -56,8 +57,8 @@
         "rules": false
       },
       "relay4": {
-        "name": "Fan",
-        "pin": 12,
+        "name": "Aux2",
+        "pin": 14,
         "address": "0x43",
         "boot_power": false,
         "monitor": false,
@@ -65,8 +66,8 @@
         "rules": false
       },
       "relay5": {
-        "name": "Aux1",
-        "pin": 13,
+        "name": "Aux3",
+        "pin": 4,
         "address": "0x44",
         "boot_power": false,
         "monitor": false,
@@ -74,34 +75,42 @@
         "rules": false
       },
       "relay6": {
-        "name": "Aux2",
-        "pin": 14,
+        "name": "Fan",
+        "pin": 16,
         "address": "0x45",
         "boot_power": true,
         "monitor": true,
         "schedule": false,
-        "rules": {
-          "1": {
-            "field": "watts",
-            "condition": ">",
-            "value": 12,
-            "actions": [
-              {"type": "log", "message": "System Watts below threshold"}
-            ]
-          }
-        }
+        "rules": false
       },
       "relay7": {
-        "name": "Aux3",
-        "pin": 15,
+        "name": "AC Power",
+        "pin": 12,
         "address": "0x46",
         "boot_power": false,
         "monitor": false,
         "schedule": false,
-        "rules": false
+        "rules": {
+            "1": {
+              "field": "volts",
+              "condition": "<=",
+              "value": 5,
+              "actions": [
+                {"type": "log", "message": "Main AC volts critical"}
+              ]
+            },
+            "2": {
+              "field": "volts",
+              "condition": "<=",
+              "value": 3.3,
+              "actions": [
+                {"type": "log", "message": "Main AC power failure"}
+              ]
+            }
+        }
       },
       "relay8": {
-        "name": "Aux4",
+        "name": "24V Regulator",
         "pin": 16,
         "address": "0x47",
         "boot_power": false,
