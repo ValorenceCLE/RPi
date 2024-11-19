@@ -7,7 +7,7 @@ class Settings:
             with open('/proc/cpuinfo', 'r') as f:
                 for line in f:
                     if line.startswith('Serial'):
-                        return line.split(':')[-1].strip().upper()
+                        return line.split(':')[-1].strip().lower()
         except IOError as e:
             logger.error(f"Failed to get RPi Serial Number: {e}")
             return None
@@ -33,7 +33,7 @@ class Settings:
         self.DEVICE_KEY = os.getenv('DEVICE_KEY') # These may need to be a function call to make sure they are loaded correctly/exist
         self.DEVICE_CSR = os.getenv('DEVICE_CSR')
         self.DEVICE_CRT = os.getenv('DEVICE_CRT')
-        self.COMBINED_CERTIFICATE = os.getenv('DEVICE_COMBINED_CRT')
+        self.DEVICE_COMBINED_CRT = os.getenv('DEVICE_COMBINED_CRT')
 
         # Certificate subject attributes
         self.COUNTRY_NAME = "US"

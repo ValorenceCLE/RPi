@@ -1,16 +1,30 @@
 import asyncio
+from awscrt import io
 from utils.validator import validate_config, Schedule
 from core.relay_monitor import RelayMonitor
 from utils.logging_setup import local_logger as logger
 from utils.logging_setup import central_logger as syslog
-from core.aws import AWSIoTClient
+from core.aws import AWSIoTClient, CertificateManager
+
+# io.init_logging(getattr(io.LogLevel, 'Debug'), 'stderr.log')
+
 async def main():
     config = validate_config()
     tasks = []
-    aws=AWSIoTClient()
-    await aws.connect()
-    await aws.publish("test", "Hello from relay controller")
 
+    # Initialize the AWS IoT client
+    aws_client = AWSIoTClient()
+    try:
+        await aws_client.connect()
+        logger.info("Connected to AWS IoT Core.")
+
+        # Publish a test message
+        await aws_client.publish("test/topic", "Hello from relay controller")
+        logger.info("Test message published.")
+    except Exception as e:
+        logger.error(f"Failed to connect or publish: {e}")
+        return
+    
     for relay_id, relay_config in config.relays.items():
         # Decide whether to create a RelayMonitor instance based on monitoring or scheduling
         should_monitor = relay_config.monitor

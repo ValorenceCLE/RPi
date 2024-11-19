@@ -99,15 +99,6 @@
         "monitor": false,
         "schedule": false,
         "rules": false
-      },
-      "relay8": {
-        "name": "Aux4",
-        "pin": 16,
-        "address": "0x47",
-        "boot_power": false,
-        "monitor": false,
-        "schedule": false,
-        "rules": false
       }
     },
     "validation": {

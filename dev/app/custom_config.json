@@ -108,15 +108,6 @@
               ]
             }
         }
-      },
-      "relay8": {
-        "name": "24V Regulator",
-        "pin": 16,
-        "address": "0x47",
-        "boot_power": false,
-        "monitor": false,
-        "schedule": false,
-        "rules": false
       }
     },
     "validation": {
