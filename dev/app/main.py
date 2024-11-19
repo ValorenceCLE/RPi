@@ -4,7 +4,7 @@ from utils.validator import validate_config, Schedule
 from core.relay_monitor import RelayMonitor
 from utils.logging_setup import local_logger as logger
 from utils.logging_setup import central_logger as syslog
-from core.aws import AWSIoTClient, CertificateManager
+from core.aws import AWSIoTClient
 
 # io.init_logging(getattr(io.LogLevel, 'Debug'), 'stderr.log')
 

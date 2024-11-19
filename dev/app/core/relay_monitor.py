@@ -5,6 +5,7 @@ from core.rules_engine import RulesEngine
 from core.schedule_engine import ScheduleEngine
 from utils.logging_setup import local_logger as logger
 from utils.logging_setup import central_logger as syslog
+from utils.singleton import RedisClient
 import board
 import adafruit_ina260
 

@@ -162,7 +162,7 @@ def handle_validation_errors(config_data: dict, validation_error: ValidationErro
 def validate_config() -> FullConfig:
     global VALIDATION_CONFIG
     # Load the default config
-    default_config_data = load_json_file('dev/app/default_config.json')
+    default_config_data = load_json_file('dev/app/utils/json/default_config.json')
     
     # Get the Raspberry Pi Serial Number
     default_system_id = pi_serial()
