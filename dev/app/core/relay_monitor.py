@@ -1,10 +1,10 @@
 import asyncio
 from typing import Dict
-from app.validator import RelayConfig
-from app.rules_engine import RulesEngine
-from app.schedule_engine import ScheduleEngine
-from app.utils.logging_setup import local_logger as logger
-from app.utils.logging_setup import central_logger as syslog
+from utils.validator import RelayConfig
+from core.rules_engine import RulesEngine
+from core.schedule_engine import ScheduleEngine
+from utils.logging_setup import local_logger as logger
+from utils.logging_setup import central_logger as syslog
 import board
 import adafruit_ina260
 

@@ -1,13 +1,16 @@
 import asyncio
-from app.validator import validate_config, Schedule
-from app.relay_monitor import RelayMonitor
-from app.utils.logging_setup import local_logger as logger
-from app.utils.logging_setup import central_logger as syslog
-
+from utils.validator import validate_config, Schedule
+from core.relay_monitor import RelayMonitor
+from utils.logging_setup import local_logger as logger
+from utils.logging_setup import central_logger as syslog
+from core.aws import AWSIoTClient
 async def main():
     config = validate_config()
     tasks = []
-    
+    aws=AWSIoTClient()
+    await aws.connect()
+    await aws.publish("test", "Hello from relay controller")
+
     for relay_id, relay_config in config.relays.items():
         # Decide whether to create a RelayMonitor instance based on monitoring or scheduling
         should_monitor = relay_config.monitor

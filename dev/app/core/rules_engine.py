@@ -1,8 +1,8 @@
 import asyncio
 from typing import Dict, List
-from app.validator import Action, Rule
-from app.utils.logging_setup import local_logger as logger
-from app.utils.logging_setup import central_logger as syslog
+from utils.validator import Action, Rule
+from utils.logging_setup import local_logger as logger
+from utils.logging_setup import central_logger as syslog
 
 class RulesEngine:
     def __init__(self, relay_id: str, rules: Dict[str, Rule]):

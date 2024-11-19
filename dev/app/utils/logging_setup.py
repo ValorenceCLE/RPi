@@ -3,7 +3,7 @@ import logging.handlers
 import sys
 import socket
 import time
-from app.validator import validate_config
+from utils.validator import validate_config
 
 # Load the config
 config = validate_config()
