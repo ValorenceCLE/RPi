@@ -33,7 +33,7 @@ class NetworkPing:
                 max_rtt = None
             await self.stream_data(avg_rtt, min_rtt, max_rtt, packet_loss_percent)
         except Exception as e:
-            await logger.error(f"Failed to perform ping test: {e}")
+            logger.error(f"Failed to perform ping test: {e}")
             
     async def ping_host(self):
         try:

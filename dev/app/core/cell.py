@@ -46,9 +46,9 @@ class CellularMetrics:
                 rsrq = await self.ensure_float(data.get('rsrq_oid'))
                 await self.stream_data(sinr, rsrp, rsrq)
             else:
-                await logger.warning("No data returned from SNMP request.")
+                logger.warning("No data returned from SNMP request.")
         except Exception as e:
-            await logger.error(f"Error processing data: {e}")
+            logger.error(f"Error processing data: {e}")
         
     async def stream_data(self, sinr, rsrp, rsrq):
         timestamp = datetime.now(timezone.utc).astimezone().isoformat()
@@ -63,12 +63,12 @@ class CellularMetrics:
         
     async def ensure_float(self, value):
         if value is None:
-            await logger.warning("Warning: Received None value, using null placeholder.")
+            logger.warning("Warning: Received None value, using null placeholder.")
             return self.null
         try:
             return float(value)
         except (ValueError, TypeError) as e:
-            await logger.error(f"Error converting value to float: {e}")
+            logger.error(f"Error converting value to float: {e}")
             return self.null
         
     async def cell_run(self):

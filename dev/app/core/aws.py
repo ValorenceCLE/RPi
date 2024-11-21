@@ -7,6 +7,8 @@ from utils.config import settings
 from utils.certificates import CertificateManager
 
 class AWSIoTClient:
+    # Review the AWS IoT SDK Source code to see how they do it to make sure we are doing it the right way
+    # And following the best practices.
     def __init__(self):
         self.cert_manager = CertificateManager()
         self.client_id = settings.AWS_CLIENT_ID

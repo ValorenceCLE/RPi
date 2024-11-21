@@ -1,10 +1,10 @@
 from utils.config import settings
-from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync # type: ignore
-from influxdb_client.client.write_api_async import WriteApiAsync # type: ignore
-from influxdb_client.client.query_api_async import QueryApiAsync  # type: ignore
-from redis.asyncio import Redis  # type: ignore
+from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync 
+from influxdb_client.client.write_api_async import WriteApiAsync 
+from influxdb_client.client.query_api_async import QueryApiAsync
+from redis.asyncio import Redis
 import asyncio 
-from utils.logging_setup import logger
+from utils.logging_setup import local_logger as logger
 
 class InfluxClient:
     _instance = None
@@ -23,7 +23,7 @@ class InfluxClient:
                 try:
                     client = InfluxDBClientAsync(url=url, token=token, org=org)
                     cls._instance = client
-                    await logger.info("InfluxDB Client Created")
+                    logger.info("InfluxDB Client Created")
                 except Exception as e:
                     logger.critical(f"Failed to create InfluxDB Client: {e}")
                     raise e

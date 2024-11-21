@@ -5,6 +5,7 @@ from core.relay_monitor import RelayMonitor
 from utils.logging_setup import local_logger as logger
 from utils.logging_setup import central_logger as syslog
 from core.aws import AWSIoTClient
+from core.processor import RelayProcessor, GeneralProcessor
 
 # io.init_logging(getattr(io.LogLevel, 'Debug'), 'stderr.log')
 
@@ -31,15 +32,23 @@ async def main():
         has_schedule = isinstance(relay_config.schedule, Schedule) and relay_config.schedule.enabled
         if should_monitor or has_schedule:
             monitor = RelayMonitor(relay_id, relay_config)
-            task = asyncio.create_task(monitor.start())
-            tasks.append(task)
+            monitor_task = asyncio.create_task(monitor.start())
+            tasks.append(monitor_task) # Collect data/monitor the relays
+
+            processor = RelayProcessor(relay_id)
+            processor_task = asyncio.create_task(processor.run())
+            tasks.append(processor_task) # Save/process data from monitoring the relays to InfluxDB
         else:
             logger.info(f"No monitoring or scheduling configured for {relay_id}.")
 
     if tasks:
-        await asyncio.gather(*tasks)
+        try:
+            await asyncio.gather(*tasks, return_exceptions=True)
+        except asyncio.CancelledError:
+            logger.info("Tasks have been cancelled.")
     else:
         logger.warning("No relays are configured for monitoring or scheduling.")
+        
 if __name__ == "__main__":
     logger.info("Starting the relay controller.")
     syslog.info("Starting the relay controller.")

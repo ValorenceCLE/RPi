@@ -14,6 +14,8 @@ class RelayMonitor:
         """
         Initializes the RelayMonitor with the given relay ID and configuration.
 
+        This init needs to be cleaned up and refactored.
+
         Args:
             relay_id (str): The identifier for the relay.
             relay_config (RelayConfig): The configuration for the relay.
@@ -27,14 +29,16 @@ class RelayMonitor:
         self.monitor = relay_config.monitor # monitor (bool): Should the relay(s) be monitored i.e collect data? (true/false)
         self.schedule = relay_config.schedule # schedule (Schedule): The schedule for the relay(s) (if any)
         self.rules = relay_config.rules # rules (Dict[str, Rule]): The rules defined for the relay(s) (if any)
-        self.collection_interval = 30 # collection_interval (int): The data collection interval in seconds
+        self.collection_interval = 1 # collection_interval (int): The data collection interval in seconds
         self.rules_engine = RulesEngine(self.relay_id, self.rules) # rules_engine (RulesEngine): The rules engine instance for rule evaluation
         self.schedule_engine = ScheduleEngine(self.relay_id, self.schedule) # schedule_engine (ScheduleEngine): The schedule engine instance for schedule management
         self.state = self.boot_power # state (bool): The current state of the relay(s) (default to boot_power)
         self.i2c = None # i2c (board.I2C): The I2C bus instance for the sensor
         self.sensor = None # sensor (adafruit_ina260.INA260): The sensor instance for the relay(s)
+        self.redis = None
     
     async def start(self):
+        await self.init_redis()
         tasks = []
         if self.schedule_engine.is_enabled():
             tasks.append(self.manage_schedule())
@@ -55,10 +59,20 @@ class RelayMonitor:
         else:
             logger.warning(f"No tasks running for relay {self.relay_id}")
     
+    async def init_redis(self):
+        try:
+            self.redis = await RedisClient.get_instance()
+            logger.info("Redis client initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize Redis client")
+
     async def manage_schedule(self):
         """
         Manages the relay schedule by checking the desired state from the schedule engine
         and updating the relay state if necessary.
+
+        We dont want it to sleep, this should really just happen once when the server starts that way users can use the relay buttons
+        without being overidden by the schedule.
         """
         while True:
             try:
@@ -72,6 +86,7 @@ class RelayMonitor:
     async def set_relay_state(self, state: bool):
         self.state = state
         logger.info(f"Relay {self.relay_id} state set to {state}")
+        # Implement logic for this here or in a separate function/file
     
     async def collect_data_loop(self):
         """
@@ -80,6 +95,7 @@ class RelayMonitor:
         while True:
             try:
                 data = await self.collect_data()
+                await self.stream_data(data)
                 await self.rules_engine.evaluate_rules(data)
             except Exception as e:
                 logger.error(f"Error collecting data for relay {self.relay_id}: {e}")
@@ -95,5 +111,20 @@ class RelayMonitor:
         volts = await asyncio.to_thread(lambda: round(self.sensor.voltage, 2))
         watts = await asyncio.to_thread(lambda: round(self.sensor.power / 1000, 2))
         amps = await asyncio.to_thread(lambda: round(self.sensor.current / 1000, 2))
-        syslog.info(f"{self.name} data collected: Volts={volts}, Watts={watts}, Amps={amps}")
         return {"relay": self.relay_id, "volts": volts, "amps": amps, "watts": watts}
+    
+    async def stream_data(self, data: Dict[str, float]):
+        """
+        Streams the collected data to Redis for storage and further processing.
+
+        Args:
+            data (Dict[str, float]): The data to be streamed.
+        """
+        if not self.redis:
+            logger.error("Redis client not initialized")
+            return
+        try:
+            await self.redis.xadd(self.relay_id, data)
+            logger.info(f"Data streamed for relay {self.relay_id}")
+        except Exception as e:
+            logger.error(f"Error streaming data for relay {self.relay_id}: {e}")
