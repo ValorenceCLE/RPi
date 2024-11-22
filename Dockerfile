@@ -48,7 +48,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Set up the data collection code
 WORKDIR /app
-COPY ./data/app /app
+COPY ./dev/app /app
 
 # Run the data collection container
 CMD ["python3", "main.py"]

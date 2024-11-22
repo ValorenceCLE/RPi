@@ -32,6 +32,7 @@ aiosnmp==0.7.2
 
 # Certificate handling
 certifi==2024.7.4
+pexpect==4.9.0
 
 # AWS and cloud services
 awsiotsdk==1.22.0

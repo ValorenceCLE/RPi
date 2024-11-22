@@ -53,7 +53,7 @@ class NetworkPing:
                 "max_rtt": max_rtt,
                 "packet_loss_percent": packet_loss_percent
             }
-            await self.redis.xadd('network_data', data)
+            await self.redis.xadd('network', data)
         except Exception as e:
             logger.error(f"Failed to stream data to Redis: {e}", exc_info=True)
         

@@ -1,6 +1,6 @@
 import asyncio
 import json
-from awscrt import mqtt5
+from awscrt import mqtt
 from awsiot import mqtt_connection_builder
 from utils.logging_setup import local_logger as logger
 from utils.config import settings
@@ -54,7 +54,7 @@ class AWSIoTClient:
     def on_connection_resumed(self, connection, return_code, session_present, **kwargs):
         logger.info("Connection resumed.")
 
-    async def publish(self, topic: str, payload:str, qos=mqtt5.QoS.AT_LEAST_ONCE):
+    async def publish(self, topic: str, payload:str, qos=mqtt.QoS.AT_LEAST_ONCE):
         if self.is_connected:
             full_topic = f"{self.client_id}/{topic}"
             publish_future, _ = self.mqtt_connection.publish(
@@ -68,7 +68,7 @@ class AWSIoTClient:
             logger.error("Cannot publish message. MQTT connection not established.")
 
 
-    async def subscribe(self, topic: str, callback, qos=mqtt5.QoS.AT_LEAST_ONCE):
+    async def subscribe(self, topic: str, callback, qos=mqtt.QoS.AT_LEAST_ONCE):
         """
         Subscribes to a topic prefixing with the client ID
         """

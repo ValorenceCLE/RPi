@@ -84,7 +84,7 @@ class RelayProcessor:
 
 
 class GeneralProcessor:
-    def __init__(self):
+    def __init__(self, streams):
         self.redis = None
         self.write_api = None
         self.collection_interval = 300
@@ -92,7 +92,7 @@ class GeneralProcessor:
         self.org = settings.ORG
         self.group_name = 'general_group'
         self.consumer_name = 'general_processor'
-        self.streams = ['cellular', 'network', 'environment']
+        self.streams = streams
 
     async def async_init(self):
         self.redis = await RedisClient.get_instance()

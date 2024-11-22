@@ -58,7 +58,7 @@ class CellularMetrics:
             "rsrp": rsrp,
             "rsrq": rsrq
         }
-        await self.redis.xadd('cellular_data', data)
+        await self.redis.xadd('cellular', data)
         
         
     async def ensure_float(self, value):
@@ -71,7 +71,7 @@ class CellularMetrics:
             logger.error(f"Error converting value to float: {e}")
             return self.null
         
-    async def cell_run(self):
+    async def run(self):
         await self.async_init()
         while True:
             await self.process_data()

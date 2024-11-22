@@ -85,9 +85,12 @@ services:
     volumes:
       - ./etc/logs:/var/log/app # Log files
       - ./etc/device_info:/device_info # Device information
-      - ./data/app:/app # Mount the local directory for easier development
+      - ./dev/app:/app # Mount the local directory for easier development
+      - ./dev/app/utils/json:/utils/json
+      - ./aws/certs:/aws/certs
     env_file:
       - ./config/influxdb.env # Environment variables for passwords and database initialization
+      - ./config/aws.env
     logging: # Logging configuration, this is important to keep the logs from filling up the disk. Currently using custom logging
       driver: "json-file"
       options:
