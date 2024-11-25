@@ -1,35 +1,25 @@
 import asyncio
 from utils.validator import validate_config, Schedule
-from core.relay_monitor import RelayMonitor
 from utils.logging_setup import local_logger as logger
 from utils.logging_setup import central_logger as syslog
-from core.aws import AWSIoTClient
+from utils.certificates import CertificateManager
+from core.relay_monitor import RelayMonitor
 from core.processor import RelayProcessor, GeneralProcessor
-from utils.dashboard import Dashboard_Setup
 from core.cell import CellularMetrics
 from core.net import NetworkPing
 
 # io.init_logging(getattr(io.LogLevel, 'Debug'), 'stderr.log')
 
-async def aws_main():
-    aws_client = AWSIoTClient()
-    try:
-        await aws_client.connect()
-        logger.info("Connected to AWS IoT Core.")
-        await aws_client.publish("info/start", "Relay Controller started.")
-    except Exception as e:
-        logger.error(f"Failed to connect to AWS IoT Core: {e}")
-        return
-    return aws_client
-
 async def main():
     logger.info("Application started")
-    await aws_main() # Connect to AWS IoT Core
-
-    # Build the InfluxDB Dashboard
-    dashboard = Dashboard_Setup()
-    await dashboard.run()
-    dashboard.close()
+    logger.info("Checking device certificates...")
+    if not CertificateManager().certificate_exists():
+        logger.info("Generating device certificates...")
+        try:
+            CertificateManager().create_certificates()
+            logger.info("Certificates generated successfully.")
+        except Exception as e:
+            logger.error(f"Failed to generate certificates: {e}")
 
     config = validate_config()
     tasks = []

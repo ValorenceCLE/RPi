@@ -1,0 +1,1 @@
+# Need temp/humidity sensor script for the different sensor we are using now

@@ -1,9 +1,12 @@
 import asyncio
+import json
 from datetime import datetime, timezone
 from influxdb_client import Point
 from utils.logging_setup import local_logger as logger
 from utils.config import settings
 from utils.singleton import InfluxWriter, RedisClient
+from core.mqtt import publish
+
 
 class RelayProcessor:
     def __init__(self, relay_id: str):
@@ -62,19 +65,35 @@ class RelayProcessor:
             avg_volts = round(_volts / count,2)
             avg_watts = round(_watts / count,2)
             avg_amps = round(_amps / count,2)
-            point = Point(self.relay_id)\
-                .tag("source", self.relay_id)\
-                .field("volts", avg_volts)\
-                .field("watts", avg_watts)\
-                .field("amps", avg_amps)\
-                .time(datetime.now(timezone.utc).astimezone().isoformat())
-            await self.write_to_influxdb(point)
+            timestamp = datetime.now(timezone.utc).astimezone().isoformat()
+            data = {"source": self.relay_id, "timestamp": timestamp, "volts": avg_volts, "watts": avg_watts, "amps": avg_amps}
+            # Process the data
+            await self.write_to_influxdb(data)
+            await self.publisher(data)
 
-    async def write_to_influxdb(self,point):
+    async def write_to_influxdb(self,data):
+        point = Point(self.relay_id)\
+            .tag("source", data['source'])\
+            .field("volts", data['volts'])\
+            .field("watts", data['watts'])\
+            .field("amps", data['amps'])\
+            .time(datetime.fromisoformat(data['timestamp']))
         try:
             await self.write_api.write(bucket=self.bucket, org=self.org, record=point)
         except Exception as e:
             logger.error(f"Error writing to InfluxDB: {e}")
+
+    async def publisher(self, data: dict):
+        payload = json.dumps(data)
+        try:
+            # Retrieve the Singleton instance of AWSIoTClient
+            
+            topic = f"{self.relay_id}/data"
+            # Publish the payload to the specified topic
+            publish(topic, payload)
+            logger.info(f"Published data to AWS IoT Core on topic '{topic}': {payload}")
+        except Exception as e:
+            logger.error(f"Failed to publish data to AWS IoT Core: {e}")
 
     async def run(self):
         await self.async_init()

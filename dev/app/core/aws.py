@@ -1,15 +1,23 @@
 import asyncio
 import json
 from awscrt import mqtt
-from awsiot import mqtt_connection_builder
+from awsiot import mqtt_connection_builder, mqtt5_client_builder
 from utils.logging_setup import local_logger as logger
 from utils.config import settings
 from utils.certificates import CertificateManager
 
 class AWSIoTClient:
-    # Review the AWS IoT SDK Source code to see how they do it to make sure we are doing it the right way
-    # And following the best practices.
+    _instance = None
+    _lock = asyncio.Lock()
+
     def __init__(self):
+        """
+        Private constructor to prevent direct instantiation.
+        Use the `get_instance` class method instead.
+        """
+        if AWSIoTClient._instance is not None:
+            raise Exception("This class is a singleton! Use get_instance() method.")
+
         self.cert_manager = CertificateManager()
         self.client_id = settings.AWS_CLIENT_ID
         self.endpoint = settings.AWS_ENDPOINT
@@ -18,11 +26,38 @@ class AWSIoTClient:
         self.CERT = settings.DEVICE_COMBINED_CRT
         self.mqtt_connection = None
         self.is_connected = False
-        self.lock = asyncio.Lock()
-    
+        self.connection_lock = asyncio.Lock()
+        self.loop = None  # Will be set upon connection
+
+    @classmethod
+    async def get_instance(cls):
+        """
+        Asynchronously retrieves the Singleton instance.
+        If it doesn't exist, creates it and connects to AWS IoT Core.
+        """
+        async with cls._lock:
+            if cls._instance is None:
+                cls._instance = AWSIoTClient()
+                await cls._instance.connect()
+            return cls._instance
+        
+    @classmethod
+    async def close_instance(cls):
+        """
+        Asynchronously closes the Singleton instance.
+        """
+        async with cls._lock:
+            if cls._instance:
+                await cls._instance.disconnect()
+                cls._instance = None
+
     async def connect(self):
-        async with self.lock:
+        """
+        Establishes the MQTT connection to AWS IoT Core.
+        """
+        async with self.connection_lock:
             if self.is_connected:
+                logger.info("Already connected to AWS IoT Core.")
                 return
             logger.info("Connecting to AWS IoT Core...")
             try:
@@ -32,6 +67,7 @@ class AWSIoTClient:
                 logger.error(f"Failed to create certificates: {e}")
                 return 
 
+            self.loop = asyncio.get_running_loop()  # Capture the main event loop before connecting
             self.mqtt_connection = mqtt_connection_builder.mtls_from_path(
                 endpoint=self.endpoint,
                 cert_filepath=self.CERT,        # Path to deviceCertAndCACert.crt
@@ -40,64 +76,117 @@ class AWSIoTClient:
                 ca_filepath=self.ROOT_AWS_CA,   # Path to awsRootCA.pem
                 clean_session=False,
                 on_connection_interrupted=self.on_connection_interrupted,
-                on_connection_resumed=self.on_connection_resumed,
-                keep_alive_secs=30,
+                on_connection_resumed=self.on_connection_resumed
             )
             connect_future = self.mqtt_connection.connect()
             await asyncio.wrap_future(connect_future)
             self.is_connected = True
             logger.info("Connected to AWS IoT Core.")
-        
+
     def on_connection_interrupted(self, connection, error, **kwargs):
+        """
+        Callback when the MQTT connection is interrupted.
+        Schedules the reconnection coroutine using the main event loop.
+        """
         logger.warning(f"Connection interrupted: {error}")
+        self.is_connected = False
+        if self.loop:
+            asyncio.run_coroutine_threadsafe(self.handle_reconnection(), self.loop)
 
     def on_connection_resumed(self, connection, return_code, session_present, **kwargs):
+        """
+        Callback when the MQTT connection is resumed.
+        """
         logger.info("Connection resumed.")
+        self.is_connected = True
 
-    async def publish(self, topic: str, payload:str, qos=mqtt.QoS.AT_LEAST_ONCE):
-        if self.is_connected:
-            full_topic = f"{self.client_id}/{topic}"
-            publish_future, _ = self.mqtt_connection.publish(
-                topic=full_topic,
-                payload=payload,
-                qos=qos
-            )
-            await asyncio.wrap_future(publish_future)
-            logger.debug(f"Published message to topic {full_topic}")
-        else:
-            logger.error("Cannot publish message. MQTT connection not established.")
+    async def handle_reconnection(self):
+        """
+        Handles reconnection attempts with exponential backoff.
+        """
+        backoff = 1  # Start with 1 second
+        while not self.is_connected:
+            try:
+                logger.info("Attempting to reconnect to AWS IoT Core...")
+                await self.connect()
+            except Exception as e:
+                logger.error(f"Failed to reconnect to AWS IoT Core: {e}")
+                await asyncio.sleep(backoff)
+                backoff = min(backoff * 2, 60)  # Exponential backoff up to 60 seconds
 
+    async def callback(self, topic, payload, **kwargs):
+        """
+        Callback for incoming MQTT messages.
+        """
+        logger.info(f"Received message on topic {topic}: {payload}")
+
+    async def publish(self, topic: str, payload: str, qos=mqtt.QoS.AT_LEAST_ONCE):
+        """
+        Publishes a message to the specified MQTT topic.
+        """
+        async with self.connection_lock:
+            if self.is_connected:
+                try:
+                    publish_future, _ = self.mqtt_connection.publish(
+                        topic=topic,
+                        payload=payload,
+                        qos=qos
+                    )
+                    await asyncio.wrap_future(publish_future)
+                    logger.info(f"Published message to topic '{topic}': {payload}")
+                except Exception as e:
+                    logger.error(f"Failed to publish message to topic '{topic}': {e}")
+            else:
+                logger.warning("MQTT connection is not established. Attempting to reconnect...")
+                await self.connect()
+                if self.is_connected:
+                    try:
+                        publish_future, _ = self.mqtt_connection.publish(
+                            topic=topic,
+                            payload=payload,
+                            qos=qos
+                        )
+                        await asyncio.wrap_future(publish_future)
+                        logger.info(f"Published message to topic '{topic}': {payload}")
+                    except Exception as e:
+                        logger.error(f"Failed to publish message to topic '{topic}': {e}")
+                else:
+                    logger.error("Failed to reconnect to AWS IoT Core. Cannot publish message.")
 
     async def subscribe(self, topic: str, callback, qos=mqtt.QoS.AT_LEAST_ONCE):
         """
-        Subscribes to a topic prefixing with the client ID
+        Subscribes to a topic.
         """
-        if self.is_connected:
-            full_topic = f"{self.client_id}/{topic}"
-            subscribe_future, _ = self.mqtt_connection.subscribe(
-                topic=full_topic,
-                qos=qos,
-                callback=callback
-            )
-            await asyncio.wrap_future(subscribe_future)
-            logger.debug(f"Subscribed to topic {full_topic}")
-        else:
-            logger.error("Cannot subscribe to topic. MQTT connection not established.")
+        async with self.connection_lock:
+            if self.is_connected:
+                try:
+                    subscribe_future, _ = self.mqtt_connection.subscribe(
+                        topic=topic,
+                        qos=qos,
+                        callback=callback
+                    )
+                    await asyncio.wrap_future(subscribe_future)
+                    logger.debug(f"Subscribed to topic '{topic}'")
+                except Exception as e:
+                    logger.error(f"Failed to subscribe to topic '{topic}': {e}")
+            else:
+                logger.error("Cannot subscribe to topic. MQTT connection not established.")
 
     async def disconnect(self):
         """
-        Disconnects from AWS IoT Core
+        Disconnects from AWS IoT Core gracefully.
         """
-        if self.is_connected:
-            disconnect_future = self.mqtt_connection.disconnect()
-            await asyncio.wrap_future(disconnect_future)
-            self.is_connected = False
-            logger.info("Disconnected from AWS IoT Core.")
-        else:
-            logger.error("Cannot disconnect. MQTT connection not established.")
-
-    async def callback(self, topic, payload, **kwargs):
-        logger.info(f"Received message on topic {topic}: {payload}")
+        async with self.connection_lock:
+            if self.is_connected:
+                try:
+                    disconnect_future = self.mqtt_connection.disconnect()
+                    await asyncio.wrap_future(disconnect_future)
+                    self.is_connected = False
+                    logger.info("Disconnected from AWS IoT Core.")
+                except Exception as e:
+                    logger.error(f"Failed to disconnect from AWS IoT Core: {e}")
+            else:
+                logger.warning("MQTT connection is not established.")
 
 class DeviceShadowManager:
     def __init__(self, aws_client: AWSIoTClient):

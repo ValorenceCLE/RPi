@@ -125,6 +125,6 @@ class RelayMonitor:
             return
         try:
             await self.redis.xadd(self.relay_id, data)
-            logger.info(f"Data streamed for relay {self.relay_id}")
+            logger.debug(f"Data streamed for relay {self.relay_id}")
         except Exception as e:
             logger.error(f"Error streaming data for relay {self.relay_id}: {e}")

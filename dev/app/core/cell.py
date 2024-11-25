@@ -63,7 +63,7 @@ class CellularMetrics:
         
     async def ensure_float(self, value):
         if value is None:
-            logger.warning("Warning: Received None value, using null placeholder.")
+            logger.debug("Warning: Received None value, using null placeholder.")
             return self.null
         try:
             return float(value)
