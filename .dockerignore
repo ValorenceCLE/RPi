@@ -1,6 +1,8 @@
-.git
-*.pyc
 __pycache__/
 tmp/
 env/
 *.vscode/
+*.pyc
+*.pyo
+*.log
+.git/

@@ -1,273 +1,167 @@
 import asyncio
-import json
-from awscrt import mqtt
-from awsiot import mqtt_connection_builder, mqtt5_client_builder
+from awsiot import mqtt5_client_builder
+from awscrt import mqtt5
 from utils.logging_setup import local_logger as logger
 from utils.config import settings
-from utils.certificates import CertificateManager
+import json
 
 class AWSIoTClient:
     _instance = None
-    _lock = asyncio.Lock()
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super().__new__(cls)
+        return cls._instance
 
     def __init__(self):
-        """
-        Private constructor to prevent direct instantiation.
-        Use the `get_instance` class method instead.
-        """
-        if AWSIoTClient._instance is not None:
-            raise Exception("This class is a singleton! Use get_instance() method.")
+        if hasattr(self, "_initialized") and self._initialized:
+            return
+        self._initialized = True
+        self.client = self._initialize_client()
+        self.device_id = settings.AWS_CLIENT_ID
+        self.TIMEOUT = 100
+    
+    def _initialize_client(self):
+        logger.info("Initializing AWS IoT client...")
+        return mqtt5_client_builder.mtls_from_path(
+            endpoint=settings.AWS_ENDPOINT,
+            port=8883,
+            cert_filepath=settings.DEVICE_COMBINED_CRT,
+            pri_key_filepath=settings.DEVICE_KEY,
+            ca_filepath=settings.AWS_ROOT_CA,
+            http_proxy_options=None,
+            on_publish_received=self.on_publish_received,
+            on_lifecycle_stopped=self.on_lifecycle_stopped,
+            on_lifecycle_connection_success=self.on_lifecycle_connection_success,
+            on_lifecycle_connection_failure=self.on_lifecycle_connection_failure,
+            client_id=settings.AWS_CLIENT_ID,
+        )
 
-        self.cert_manager = CertificateManager()
-        self.client_id = settings.AWS_CLIENT_ID
-        self.endpoint = settings.AWS_ENDPOINT
-        self.ROOT_AWS_CA = settings.AWS_ROOT_CA
-        self.PKEY = settings.DEVICE_KEY
-        self.CERT = settings.DEVICE_COMBINED_CRT
-        self.mqtt_connection = None
-        self.is_connected = False
-        self.connection_lock = asyncio.Lock()
-        self.loop = None  # Will be set upon connection
+    async def start(self):
+        try:
+            logger.info("Starting AWS IoT client...")
+            self.future_connection_success = asyncio.Future()
+            self.client.start()
+            await asyncio.wait_for(self.future_connection_success, timeout=self.TIMEOUT)
+        except asyncio.TimeoutError:
+            logger.error("Timeout while starting AWS IoT client.")
+            raise
+        except Exception as e:
+            logger.error(f"Error starting AWS IoT client: {e}")
+            raise
+    
+    async def stop(self):
+        try:
+            logger.info("Stopping AWS IoT client...")
+            self.future_stopped = asyncio.Future()
+            self.client.stop()
+            await asyncio.wait_for(self.future_stopped, timeout=self.TIMEOUT)
+        except asyncio.TimeoutError:
+            logger.error("Timeout while stopping AWS IoT client.")
+            raise
+        except Exception as e:
+            logger.error(f"Error stopping AWS IoT client: {e}")
+            raise
 
-    @classmethod
-    async def get_instance(cls):
-        """
-        Asynchronously retrieves the Singleton instance.
-        If it doesn't exist, creates it and connects to AWS IoT Core.
-        """
-        async with cls._lock:
-            if cls._instance is None:
-                cls._instance = AWSIoTClient()
-                await cls._instance.connect()
-            return cls._instance
-        
-    @classmethod
-    async def close_instance(cls):
-        """
-        Asynchronously closes the Singleton instance.
-        """
-        async with cls._lock:
-            if cls._instance:
-                await cls._instance.disconnect()
-                cls._instance = None
-
-    async def connect(self):
-        """
-        Establishes the MQTT connection to AWS IoT Core.
-        """
-        async with self.connection_lock:
-            if self.is_connected:
-                logger.info("Already connected to AWS IoT Core.")
-                return
-            logger.info("Connecting to AWS IoT Core...")
-            try:
-                if not self.cert_manager.certificate_exists():
-                    self.cert_manager.create_certificates()
-            except Exception as e:
-                logger.error(f"Failed to create certificates: {e}")
-                return 
-
-            self.loop = asyncio.get_running_loop()  # Capture the main event loop before connecting
-            self.mqtt_connection = mqtt_connection_builder.mtls_from_path(
-                endpoint=self.endpoint,
-                cert_filepath=self.CERT,        # Path to deviceCertAndCACert.crt
-                pri_key_filepath=self.PKEY,     # Path to deviceCert.key
-                client_id=self.client_id,
-                ca_filepath=self.ROOT_AWS_CA,   # Path to awsRootCA.pem
-                clean_session=False,
-                on_connection_interrupted=self.on_connection_interrupted,
-                on_connection_resumed=self.on_connection_resumed
+    async def publish(self, topic, payload, source=None):
+        if not isinstance(payload, dict):
+            logger.error("Payload must be a dictionary.")
+            return
+        payload["device_id"] = self.device_id
+        if source:
+            payload["source"] = source
+        json_payload = json.dumps(payload)
+        prefixed_topic = f"{self.device_id}/{topic}"
+        logger.debug(f"Publishing to topic '{prefixed_topic}' with payload: {json_payload}")
+        publish_future = self.client.publish(
+            mqtt5.PublishPacket(
+                topic=prefixed_topic,
+                payload=json_payload.encode("utf-8"),
+                qos=mqtt5.QoS.AT_LEAST_ONCE,
             )
-            connect_future = self.mqtt_connection.connect()
-            await asyncio.wrap_future(connect_future)
-            self.is_connected = True
-            logger.info("Connected to AWS IoT Core.")
+        )
+        await self._wrap_future(publish_future)
 
-    def on_connection_interrupted(self, connection, error, **kwargs):
-        """
-        Callback when the MQTT connection is interrupted.
-        Schedules the reconnection coroutine using the main event loop.
-        """
-        logger.warning(f"Connection interrupted: {error}")
-        self.is_connected = False
-        if self.loop:
-            asyncio.run_coroutine_threadsafe(self.handle_reconnection(), self.loop)
-
-    def on_connection_resumed(self, connection, return_code, session_present, **kwargs):
-        """
-        Callback when the MQTT connection is resumed.
-        """
-        logger.info("Connection resumed.")
-        self.is_connected = True
-
-    async def handle_reconnection(self):
-        """
-        Handles reconnection attempts with exponential backoff.
-        """
-        backoff = 1  # Start with 1 second
-        while not self.is_connected:
-            try:
-                logger.info("Attempting to reconnect to AWS IoT Core...")
-                await self.connect()
-            except Exception as e:
-                logger.error(f"Failed to reconnect to AWS IoT Core: {e}")
-                await asyncio.sleep(backoff)
-                backoff = min(backoff * 2, 60)  # Exponential backoff up to 60 seconds
-
-    async def callback(self, topic, payload, **kwargs):
-        """
-        Callback for incoming MQTT messages.
-        """
-        logger.info(f"Received message on topic {topic}: {payload}")
-
-    async def publish(self, topic: str, payload: str, qos=mqtt.QoS.AT_LEAST_ONCE):
-        """
-        Publishes a message to the specified MQTT topic.
-        """
-        async with self.connection_lock:
-            if self.is_connected:
-                try:
-                    publish_future, _ = self.mqtt_connection.publish(
-                        topic=topic,
-                        payload=payload,
-                        qos=qos
-                    )
-                    await asyncio.wrap_future(publish_future)
-                    logger.info(f"Published message to topic '{topic}': {payload}")
-                except Exception as e:
-                    logger.error(f"Failed to publish message to topic '{topic}': {e}")
-            else:
-                logger.warning("MQTT connection is not established. Attempting to reconnect...")
-                await self.connect()
-                if self.is_connected:
-                    try:
-                        publish_future, _ = self.mqtt_connection.publish(
-                            topic=topic,
-                            payload=payload,
-                            qos=qos
+    async def subscribe(self, topic, callback=None):
+        try:
+            logger.info(f"Subscribing to topic '{topic}'...")
+            subscribe_future = self.client.subscribe(
+                subscribe_packet=mqtt5.SubscribePacket(
+                    subscriptions=[
+                        mqtt5.Subscription(
+                            topic_filter=f"{self.device_id}/{topic}",
+                            qos=mqtt5.QoS.AT_LEAST_ONCE,
                         )
-                        await asyncio.wrap_future(publish_future)
-                        logger.info(f"Published message to topic '{topic}': {payload}")
-                    except Exception as e:
-                        logger.error(f"Failed to publish message to topic '{topic}': {e}")
-                else:
-                    logger.error("Failed to reconnect to AWS IoT Core. Cannot publish message.")
-
-    async def subscribe(self, topic: str, callback, qos=mqtt.QoS.AT_LEAST_ONCE):
-        """
-        Subscribes to a topic.
-        """
-        async with self.connection_lock:
-            if self.is_connected:
-                try:
-                    subscribe_future, _ = self.mqtt_connection.subscribe(
-                        topic=topic,
-                        qos=qos,
-                        callback=callback
-                    )
-                    await asyncio.wrap_future(subscribe_future)
-                    logger.debug(f"Subscribed to topic '{topic}'")
-                except Exception as e:
-                    logger.error(f"Failed to subscribe to topic '{topic}': {e}")
-            else:
-                logger.error("Cannot subscribe to topic. MQTT connection not established.")
-
-    async def disconnect(self):
-        """
-        Disconnects from AWS IoT Core gracefully.
-        """
-        async with self.connection_lock:
-            if self.is_connected:
-                try:
-                    disconnect_future = self.mqtt_connection.disconnect()
-                    await asyncio.wrap_future(disconnect_future)
-                    self.is_connected = False
-                    logger.info("Disconnected from AWS IoT Core.")
-                except Exception as e:
-                    logger.error(f"Failed to disconnect from AWS IoT Core: {e}")
-            else:
-                logger.warning("MQTT connection is not established.")
-
-class DeviceShadowManager:
-    def __init__(self, aws_client: AWSIoTClient):
-        self.aws_client = aws_client
-        self.client_id = aws_client.client_id
-        # Define Shadow topics
-        self.shadow_get_topic = f"$aws/things/{self.client_id}/shadow/get"
-        self.shadow_get_accepted_topic = f"$aws/things/{self.client_id}/shadow/get/accepted"
-        self.shadow_update_topic = f"$aws/things/{self.client_id}/shadow/update"
-        self.shadow_update_accepted_topic = f"$aws/things/{self.client_id}/shadow/update/accepted"
-        self.shadow_delta_topic = f"$aws/things/{self.client_id}/shadow/update/delta"
-        # Initialize shadow client state
-        self.reported_state = {}
-        self.desired_state = {}
-        self.lock = asyncio.Lock()
+                    ]
+                )
+            )
+            await self._wrap_future(subscribe_future)
+            if callback:
+                self.client.on_publish_received = callback
+        except Exception as e:
+            logger.error(f"Error subscribing to topic '{topic}': {e}")
+            raise
     
-    async def initialize(self):
+    def _wrap_future(self, sdk_future):
         """
-        Initializes the device shadow by subscribing to necessary topics and fetching the current shadow.
+        Converts a concurrent.futures.Future into an asyncio.Future.
         """
-        await self.aws_client.subscribe(self.shadow_get_accepted_topic, self.on_shadow_get_accepted)
-        await self.aws_client.subscribe(self.shadow_update_accepted_topic, self.on_shadow_update_accepted)
-        await self.aws_client.subscribe(self.shadow_delta_topic, self.on_shadow_delta)
+        asyncio_future = asyncio.Future()
 
-        # Request the current shadow state
-        await self.get_shadow()
+        def callback(_sdk_future):
+            try:
+                result = _sdk_future.result()
+                asyncio_future.set_result(result)
+            except Exception as e:
+                asyncio_future.set_exception(e)
 
-    async def get_shadow(self):
-        """
-        Publishes an empty message to the shadow get topic to request the current shadow.
-        """
-        logger.debug("Requesting current device shadow...")
-        await self.aws_client.publish(self.shadow_get_topic, "")
+        sdk_future.add_done_callback(callback)
+        return asyncio_future
 
-    async def on_shadow_get_accepted(self, topic, payload, **kwargs):
-        """
-        Callback for when the shadow get request is accepted.
-        """
-        shadow = json.loads(payload)
-        async with self.lock:
-            self.reported_state = shadow.get("state", {}).get("reported", {})
-            self.desired_state = shadow.get("state", {}).get("desired", {})
-        logger.info(f"Shadow get accepted. Reported state: {self.reported_state}, Desired state: {self.desired_state}")
+    # Callbacks
+    def on_publish_received(self, publish_packet_data):
+        publish_packet = publish_packet_data.publish_packet
+        logger.info(
+            f"Received message from topic '{publish_packet.topic}': {publish_packet.payload}"
+        )
 
-        # Handle any pending updates
-        if self.desired_state:
-            await self.handle_desired_state(self.desired_state)
-    
-    async def update_reported_state(self, reported_state: dict):
-        """
-        Updates the reported state in the device shadow.
-        """
-        payload = json.dumps({"state": {"reported": reported_state}})
-        await self.aws_client.publish(self.shadow_update_topic, payload)
-        logger.debug(f"Reported state updated: {reported_state}")
-    
-    async def on_shadow_update_accepted(self, topic, payload, **kwargs):
-        """
-        Callback for when the shadow update is accepted.
-        """
-        shadow = json.loads(payload)
-        async with self.lock:
-            self.reported_state = shadow.get("state", {}).get("reported", {})
-            # Clear desired state if its been fullfilled
-            if 'desired' in shadow.get("state", {}):
-                self.desired_state = shadow.get("state", {}).get("desired", {})
-        logger.info(f"Shadow update accepted. Reported state: {self.reported_state}, Desired state: {self.desired_state}")
+    def on_lifecycle_stopped(self, lifecycle_stopped_data: mqtt5.LifecycleStoppedData):
+        logger.info("MQTT connection stopped")
+        self.future_stopped.set_result(lifecycle_stopped_data)
 
-    async def on_shadow_delta(self, topic, payload, **kwargs):
-        """
-        Callback for when the shadow delta is received.
-        """
-        delta = json.loads(payload)
-        desired_state = delta.get("state", {})
-        logger.info(f"Shadow delta received. Desired state: {desired_state}")
-        await self.handle_desired_state(desired_state)
-    
-    async def handle_desired_state(self, desired_state: dict):
-        """
-        Handles the desired state in the device shadow.
-        """
-        async with self.lock:
-           pass
+    def on_lifecycle_connection_success(
+        self, lifecycle_connect_success_data: mqtt5.LifecycleConnectSuccessData
+    ):
+        logger.info("Lifecycle Connection Success")
+        self.future_connection_success.set_result(lifecycle_connect_success_data)
 
+    def on_lifecycle_connection_failure(
+        self, lifecycle_connection_failure: mqtt5.LifecycleConnectFailureData
+    ):
+        logger.error(
+            f"Connection failed with exception: {lifecycle_connection_failure.exception}"
+        )
+
+# Plain Functions for Easy Usage
+_client_instance = None
+def _get_client_instance():
+    global _client_instance
+    if _client_instance is None:
+        _client_instance = AWSIoTClient()
+    return _client_instance
+
+
+async def start():
+    await _get_client_instance().start()
+
+
+async def stop():
+    await _get_client_instance().stop()
+
+
+async def publish(topic, payload, source=None):
+    await _get_client_instance().publish(topic, payload, source)
+
+
+async def subscribe(topic, callback=None):
+    await _get_client_instance().subscribe(topic, callback)

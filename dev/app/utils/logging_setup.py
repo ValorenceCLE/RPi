@@ -5,6 +5,13 @@ import socket
 import time
 from utils.validator import validate_config
 
+
+# We should remove/modify the code so that we are not accessing the remote syslog server using a public IP address
+# We should also remove the hardcoded IP address and port number from the code
+# Move away from using the public IP in favor of collecting syslogs from local devices and forwarding them to a central server
+# We can forward the logs to AWS from the Pi securely using the AWS IoT Core service since the Pi is already connected to AWS
+# We can use the AWS IoT Core service to securely send logs to AWS CloudWatch Logs for monitoring and analysis
+
 # Load the config
 config = validate_config()
 system_id = config.system.system_id

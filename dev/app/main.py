@@ -7,8 +7,8 @@ from core.relay_monitor import RelayMonitor
 from core.processor import RelayProcessor, GeneralProcessor
 from core.cell import CellularMetrics
 from core.net import NetworkPing
+from core.aws import start, stop
 
-# io.init_logging(getattr(io.LogLevel, 'Debug'), 'stderr.log')
 
 async def main():
     logger.info("Application started")
@@ -22,6 +22,10 @@ async def main():
             logger.error(f"Failed to generate certificates: {e}")
 
     config = validate_config()
+
+    # Start the AWS IoT client
+    await start()
+
     tasks = []
     
     # Initialize collection scripts for the relays
@@ -62,6 +66,4 @@ async def main():
 
 if __name__ == "__main__":
     logger.info("Starting the relay controller.")
-    syslog.info("Starting the relay controller.")
-
     asyncio.run(main())

@@ -19,7 +19,7 @@ services:
     restart: always # Restart the service if it fails, this is important to keep the service up and running
   
 
-  redis: # In-memory data structure store, used for rapid in memory processing
+  redis: # In-memory data structure store, used for rapid in memory processing, needs to be version controlled
     image: redis
     restart: always # Restart the service if it fails
     healthcheck:
