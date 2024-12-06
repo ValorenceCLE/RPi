@@ -58,6 +58,9 @@ class Settings:
         
         # Network/Ping settings
         self.PING_TARGET = '8.8.8.8'
+
+        # Data collection settings
+        self.COLLECTION_INTERVAL = 30
         self.NULL = -9999 # Value to use for missing data, may need to be adjusted based on data type
     
 

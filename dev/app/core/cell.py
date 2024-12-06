@@ -12,11 +12,11 @@ from utils.singleton import RedisClient
 # We do not want to store bad/null values as null or None or it will cause errors, it also should be an int or float
 # Maybe we use 0 as a null value. 
 
-class CellularMetrics:
+class CellularData:
     def __init__(self):
         self.host = settings.SNMP_TARGET
         self.null = settings.NULL
-        self.collection_interval = 30 # Interval in seconds between SNMP requests
+        self.collection_interval = settings.COLLECTION_INTERVAL
         self.oid_mappings = settings.OIDS
         
         
@@ -76,8 +76,5 @@ class CellularMetrics:
         while True:
             await self.process_data()
             await asyncio.sleep(self.collection_interval)
-            
-    def __del__(self):
-        self.redis.close()
         
     

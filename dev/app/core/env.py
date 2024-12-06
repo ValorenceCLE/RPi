@@ -6,8 +6,10 @@ from utils.logging_setup import local_logger as logger
 from utils.config import settings
 from utils.singleton import RedisClient
 
-class AHT10:
+class EnvironmentalData:
     def __init__(self, i2c_bus=1, address=0x38):
+        self.null = settings.NULL
+        self.collection_interval = settings.COLLECTION_INTERVAL
         try:
             self.bus = smbus2.SMBus(i2c_bus)
         except Exception as e:
@@ -15,9 +17,7 @@ class AHT10:
         self.address = address
         if self.bus:
             self.init_sensor()
-        self.null = settings.NULL
-        self.collection_interval = 30
-        
+
     async def async_init(self):
         self.redis = await RedisClient.get_instance()
     
@@ -61,7 +61,7 @@ class AHT10:
             "temperature": temperature,
             "humidity": humidity
         }
-        await self.redis.xadd('environment_data', data)
+        await self.redis.xadd('environmental', data)
 
     async def run(self):
         await self.async_init()

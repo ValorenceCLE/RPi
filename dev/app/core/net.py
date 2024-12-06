@@ -7,10 +7,10 @@ from utils.singleton import RedisClient
 
 # This script also needs better error handling
 
-class NetworkPing:
+class NetworkData:
     def __init__(self):
         self.target_ip = settings.PING_TARGET
-        self.collection_interval = 30  # Interval in seconds between ping tests
+        self.collection_interval = settings.COLLECTION_INTERVAL
         self.ping_count = 5  # Number of pings per test
         self.null = settings.NULL
         
@@ -24,13 +24,13 @@ class NetworkPing:
             packet_loss_percent = packets_lost / self.ping_count * 100
             valid_responses = list(filter(None, response_list))
             if valid_responses:
-                avg_rtt = sum(valid_responses) / len(valid_responses)
-                min_rtt = min(valid_responses)
-                max_rtt = max(valid_responses)
+                avg_rtt = round(sum(valid_responses)/len(valid_responses),2)
+                min_rtt = round(min(valid_responses),2)
+                max_rtt = round(max(valid_responses),2)
             else:
-                avg_rtt = None
-                min_rtt = None
-                max_rtt = None
+                avg_rtt = self.null
+                min_rtt = self.null
+                max_rtt = self.null
             await self.stream_data(avg_rtt, min_rtt, max_rtt, packet_loss_percent)
         except Exception as e:
             logger.error(f"Failed to perform ping test: {e}")

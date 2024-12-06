@@ -1,102 +1,86 @@
 version: '3.8'
-
 services:
-
-
-  influxdb: # High Performance Time Series Database
+  influxdb:
     image: influxdb:2.0
     volumes:
-      - influxdb_data:/var/lib/influxdb2 # Persist data
-    ports:
-      - "8086:8086" # HTTP API port/Dashboard
+      - influxdb_data:/var/lib/influxdb2
     env_file:
-      - ./config/influxdb.env # Environment variables for passwords and database initialization
+      - ./config/influxdb.env
+    ports:
+      - "8086:8086"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8086/health || exit 1"] # Check if the server is up
-      interval: 5s # Check every 5 seconds
-      timeout: 5s # Timeout after 5 seconds
-      retries: 10 # Retry 10 times, with all of this it can sometimes take a second but it will ensure the service is up and no problems
-    restart: always # Restart the service if it fails, this is important to keep the service up and running
-  
-
-  redis: # In-memory data structure store, used for rapid in memory processing, needs to be version controlled
-    image: redis
-    restart: always # Restart the service if it fails
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"] # Check if the server is up
-      interval: 5s
+      test: ["CMD-SHELL", "curl -f http://localhost:8086/health || exit 1"]
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
+    restart: on-failure
+  
+  redis:
+    image: redis:7.4.1
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: on-failure
 
-
-  nginx: # Web server, used to serve the FastAPI application
+  nginx: 
     image: nginx:1.27.2 
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./etc/certs:/etc/nginx/certs  
+      - ./web/app/static:/app/static
     ports:
       - "8000:8000"  # FastAPI HTTP port
       - "443:443"  # HTTPS port
-    volumes:
-      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./etc/certs:/etc/nginx/certs  # Volume for SSL certificates
-      - ./web/app/static:/app/static  # Mount the static files for Nginx
     depends_on:
-      - webapp # Wait for the webapp to be up and running, webapp needs to make certs before NGINX can start
-    restart: always  # Restart the service if it fails
+      - webapp 
+    restart: on-failure 
       
-
-  webapp: # Based on python image, with the target webapp. This is the FastAPI application
+  webapp:
     build:
-      context: . # Use the current directory
-      dockerfile: Dockerfile # Use the Dockerfile in the current directory
-      target: webapp # Use the webapp target in the Dockerfile
-    privileged: true # Required for GPIO control
-    restart: always # Restart the service if it fails, No error should cause the server to get stuck in a fail loop
-    depends_on: # Wait for all the other services to be up and running
+      context: . 
+      dockerfile: Dockerfile 
+      target: webapp
+    volumes:
+      - ./etc/logs:/var/log/app 
+      - ./etc/app_data:/app_data
+      - ./etc/certs:/etc/nginx/certs
+      - ./web/app:/app
+    env_file:
+      - ./config/auth.env
+      - ./config/influxdb.env
+    depends_on:
       - influxdb
       - redis
       - data_collection
-    volumes: # Map directories. These could be cleaned up/organized better
-      - ./etc/logs:/var/log/app # Logs
-      - ./etc/device_info:/device_info # Device information
-      - ./etc/app_data:/app_data # hashs
-      - ./etc/certs:/etc/nginx/certs  # Share certificates with NGINX
-      - ./web/app:/app # Mount the local directory for easier development
-    env_file: # Environment variables for passwords and database initialization
-      - ./config/auth.env
-      - ./config/influxdb.env
-    logging: # Logging configuration, this is important to keep the logs from filling up the disk. Currently using custom logging 
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
-
-
-  data_collection: # Data collection service, used to collect data from the sensors/network
-    build: # Build the data collection service
-      context: . 
-      dockerfile: Dockerfile # Use the Dockerfile in the current directory
-      target: data_collection # Use the data_collection target in the Dockerfile
+    logging:
+      driver: "none"
+    restart: on-failure
     privileged: true # Required for GPIO control
-    restart: always # Restart the service if it fails, ensures data is always collected
+
+  data_collection:
+    build:
+      context: . 
+      dockerfile: Dockerfile
+      target: data_collection
+    volumes:
+      - ./etc/logs:/var/log/app
+      - ./dev/app:/app
+      - ./dev/app/utils/json:/utils/json
+      - ./aws/certs:/aws/certs
+    env_file:
+      - ./config/influxdb.env
+      - ./config/aws.env
     depends_on:
       influxdb:
           condition: service_healthy
       redis:
           condition: service_healthy
-    volumes:
-      - ./etc/logs:/var/log/app # Log files
-      - ./etc/device_info:/device_info # Device information
-      - ./dev/app:/app # Mount the local directory for easier development
-      - ./dev/app/utils/json:/utils/json
-      - ./aws/certs:/aws/certs
-    env_file:
-      - ./config/influxdb.env # Environment variables for passwords and database initialization
-      - ./config/aws.env
-    logging: # Logging configuration, this is important to keep the logs from filling up the disk. Currently using custom logging
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
-
+    logging:
+      driver: "none"
+    restart: on-failure
+    privileged: true # Required for GPIO control
 
 volumes:
   influxdb_data:
