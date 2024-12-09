@@ -50,7 +50,7 @@ ENV PATH="/venv/bin:$PATH"
 
 # Set up the data collection code
 WORKDIR /app
-COPY ./dev /app
+COPY ./data /app
 
 # Run the data collection container
 CMD ["python3", "main.py"]

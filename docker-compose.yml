@@ -48,8 +48,7 @@ services:
       - ./etc/certs:/etc/nginx/certs
       - ./web/app:/app
     env_file:
-      - ./config/auth.env
-      - ./config/influxdb.env
+      - ./config/app.env
     depends_on:
       - influxdb
       - redis
@@ -66,12 +65,11 @@ services:
       target: data_collection
     volumes:
       - ./etc/logs:/var/log/app
-      - ./dev/app:/app
-      - ./dev/app/utils/json:/utils/json
+      - ./data/app:/app
+      - ./data/app/utils/json:/utils/json
       - ./aws/certs:/aws/certs
     env_file:
-      - ./config/influxdb.env
-      - ./config/aws.env
+      - ./config/app.env
     depends_on:
       influxdb:
           condition: service_healthy

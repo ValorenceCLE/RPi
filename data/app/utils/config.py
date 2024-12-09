@@ -23,17 +23,17 @@ class Settings:
         self.REDIS_URL = os.getenv('REDIS_URL')
 
         # AWS settings
-        self.CERT_DIR = os.getenv('CERT_DIR')
-        self.AWS_CLIENT_ID = self.rpi_serial()
-        self.AWS_REGION = os.getenv('AWS_REGION')
-        self.AWS_ENDPOINT = os.getenv('AWS_ENDPOINT')
-        self.AWS_ROOT_CA = os.getenv('AWS_ROOT_CA')
-        self.DEVICE_ROOT_KEY = os.getenv('DEVICE_ROOT_KEY')
-        self.DEVICE_ROOT_PEM = os.getenv('DEVICE_ROOT_PEM')
-        self.DEVICE_KEY = os.getenv('DEVICE_KEY') # These may need to be a function call to make sure they are loaded correctly/exist
-        self.DEVICE_CSR = os.getenv('DEVICE_CSR')
-        self.DEVICE_CRT = os.getenv('DEVICE_CRT')
-        self.DEVICE_COMBINED_CRT = os.getenv('DEVICE_COMBINED_CRT')
+        self.AWS_CLIENT_ID = self.rpi_serial() # Serial number of the RPi
+        self.AWS_REGION = os.getenv('AWS_REGION') # AWS Region (us-east-1)
+        self.AWS_ENDPOINT = os.getenv('AWS_ENDPOINT') # AWS IoT endpoint
+        self.CERT_DIR = os.getenv('CERT_DIR') # Directory to store certs
+        self.AWS_ROOT_CA = os.getenv('AWS_ROOT_CA') # Required
+        self.DEVICE_ROOT_KEY = os.getenv('DEVICE_ROOT_KEY') # Required for Generating Device Certs
+        self.DEVICE_ROOT_PEM = os.getenv('DEVICE_ROOT_PEM') # Required for Generating Device Certs
+        self.DEVICE_KEY = os.getenv('DEVICE_KEY') # Generated private key
+        self.DEVICE_CSR = os.getenv('DEVICE_CSR') # Generated CSR
+        self.DEVICE_CRT = os.getenv('DEVICE_CRT') # Generated CRT
+        self.DEVICE_COMBINED_CRT = os.getenv('DEVICE_COMBINED_CRT') # Generated combined CRT
 
         # Certificate subject attributes
         self.COUNTRY_NAME = "US"
