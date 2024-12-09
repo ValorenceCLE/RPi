@@ -4,34 +4,31 @@
       "system_id": null,
       "agency": "Valorence",
       "product": "DPM",
-      "version": "1.0",
-      "ntp_server": "time.google.com",
-      "syslog_server": "44.223.77.239",
-      "emails": ["landon.bell@valorence.com", "landon@covertlawenforcement.com"]
+      "firmware": "1.0"
     },
     "relays": {
       "relay1": {
         "name": "Router",
-        "pin": 26,
+        "pin": 21,
         "address": "0x40",
         "boot_power": true,
         "monitor": true,
         "schedule": false,
         "rules": {
           "1": {
-            "field": "watts",
+            "field": "volts",
             "condition": "<",
             "value": 3,
             "actions": [
-              {"type": "email", "message": "Router Watts below threshold"},
-              {"type": "log", "message": "Router Watts below threshold"}
+              {"type": "aws", "message": "Router Volts below threshold"},
+              {"type": "log", "message": "Router Volts below threshold"}
             ]
           }
         }
       },
       "relay2": {
         "name": "Camera",
-        "pin": 13,
+        "pin": 20,
         "address": "0x41",
         "boot_power": true,
         "monitor": true,
@@ -49,7 +46,7 @@
       },
       "relay3": {
         "name": "Aux1",
-        "pin": 6,
+        "pin": 16,
         "address": "0x42",
         "boot_power": false,
         "monitor": false,
@@ -58,7 +55,7 @@
       },
       "relay4": {
         "name": "Aux2",
-        "pin": 14,
+        "pin": 12,
         "address": "0x43",
         "boot_power": false,
         "monitor": false,
@@ -67,7 +64,7 @@
       },
       "relay5": {
         "name": "Aux3",
-        "pin": 4,
+        "pin": 13,
         "address": "0x44",
         "boot_power": false,
         "monitor": false,
@@ -76,7 +73,7 @@
       },
       "relay6": {
         "name": "Fan",
-        "pin": 16,
+        "pin": 14,
         "address": "0x45",
         "boot_power": true,
         "monitor": true,
@@ -85,7 +82,7 @@
       },
       "relay7": {
         "name": "AC Power",
-        "pin": 12,
+        "pin": 15,
         "address": "0x46",
         "boot_power": false,
         "monitor": false,
@@ -113,7 +110,7 @@
     "validation": {
       "allowed_fields": ["volts", "amps", "watts"],
       "allowed_conditions": [">", "<", ">=", "<=", "==", "!="],
-      "allowed_actions": ["log", "email", "mqtt", "toggle_relay", "pulse_relay"],
+      "allowed_actions": ["log", "aws", "relay_on", "relay_off", "pulse_relay"],
       "time_format": "HH:MM"
     }
 }

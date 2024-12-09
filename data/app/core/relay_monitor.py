@@ -1,40 +1,44 @@
+# core/relay_monitor.py
+
 import asyncio
 from typing import Dict
 from utils.validator import RelayConfig
 from core.rules_engine import RulesEngine
 from core.schedule_engine import ScheduleEngine
 from utils.logging_setup import local_logger as logger
-from utils.logging_setup import central_logger as syslog
 from utils.singleton import RedisClient
 import board
 import adafruit_ina260
+from core.relay_manager import RelayManager
 
 class RelayMonitor:
-    def __init__(self, relay_id: str, relay_config: RelayConfig):
+    def __init__(self, relay_id: str, relay_config: RelayConfig, relay_manager: RelayManager):
         """
-        Initializes the RelayMonitor with the given relay ID and configuration.
-
-        This init needs to be cleaned up and refactored.
+        Initializes the RelayMonitor with the given relay ID, configuration, and a shared RelayManager.
 
         Args:
             relay_id (str): The identifier for the relay.
             relay_config (RelayConfig): The configuration for the relay.
+            relay_manager (RelayManager): The RelayManager instance for controlling relay states.
         """
-        self.relay_id = relay_id # relay_id (str): The relay identifier, e.g: 'relay1'
-        self.config = relay_config # config (RelayConfig): The relay configuration object
-        self.name = relay_config.name # name (str): The name of the relay, e.g: 'Router, Aux1...'
-        self.pin = relay_config.pin # pin (int): The pin number for the relay(s) (immutable, each relay has a unique/defined pin)
-        self.address = int(relay_config.address, 16) #  address (int): The I2C address for the sensor (immutable, each relay has a unique/defined address)
-        self.boot_power = relay_config.boot_power # boot_power (bool): Should the relay(s) be powered on boot? (true/false). Maybe remove since schedule can handle this
-        self.monitor = relay_config.monitor # monitor (bool): Should the relay(s) be monitored i.e collect data? (true/false)
-        self.schedule = relay_config.schedule # schedule (Schedule): The schedule for the relay(s) (if any)
-        self.rules = relay_config.rules # rules (Dict[str, Rule]): The rules defined for the relay(s) (if any)
-        self.collection_interval = 1 # collection_interval (int): The data collection interval in seconds
-        self.rules_engine = RulesEngine(self.relay_id, self.rules) # rules_engine (RulesEngine): The rules engine instance for rule evaluation
-        self.schedule_engine = ScheduleEngine(self.relay_id, self.schedule) # schedule_engine (ScheduleEngine): The schedule engine instance for schedule management
-        self.state = self.boot_power # state (bool): The current state of the relay(s) (default to boot_power)
-        self.i2c = None # i2c (board.I2C): The I2C bus instance for the sensor
-        self.sensor = None # sensor (adafruit_ina260.INA260): The sensor instance for the relay(s)
+        self.relay_id = relay_id
+        self.config = relay_config
+        self.name = relay_config.name
+        self.pin = relay_config.pin
+        self.address = int(relay_config.address, 16)
+        self.boot_power = relay_config.boot_power
+        self.monitor = relay_config.monitor
+        self.schedule = relay_config.schedule
+        self.rules = relay_config.rules if relay_config.rules else {}
+        self.collection_interval = 1
+        self.relay_manager = relay_manager
+
+        # Initialize RulesEngine with Rule objects
+        self.rules_engine = RulesEngine(self.relay_id, self.rules, relay_manager=self.relay_manager)
+        self.schedule_engine = ScheduleEngine(self.relay_id, self.schedule)
+        self.state = self.boot_power
+        self.i2c = None
+        self.sensor = None
         self.redis = None
     
     async def start(self):
@@ -44,16 +48,19 @@ class RelayMonitor:
             tasks.append(self.manage_schedule())
         else:
             logger.debug(f"Schedule disabled for {self.relay_id}")
+
         if self.monitor:
             try:
                 self.i2c = board.I2C()
                 self.sensor = adafruit_ina260.INA260(self.i2c, address=self.address)
                 tasks.append(self.collect_data_loop())
+                logger.debug(f"Sensor initialized for relay {self.relay_id}")
             except ValueError as e:
                 logger.error(f"Error initializing sensor for relay {self.relay_id}: {e}")
-                self.monitor = False # Disable monitoring if sensor initialization fails
+                self.monitor = False
         else:
             logger.debug(f"Monitoring disabled for {self.relay_id}")
+
         if tasks:
             await asyncio.gather(*tasks)
         else:
@@ -64,15 +71,12 @@ class RelayMonitor:
             self.redis = await RedisClient.get_instance()
             logger.info("Redis client initialized")
         except Exception as e:
-            logger.error(f"Failed to initialize Redis client")
+            logger.error(f"Failed to initialize Redis client: {e}")
 
     async def manage_schedule(self):
         """
         Manages the relay schedule by checking the desired state from the schedule engine
         and updating the relay state if necessary.
-
-        We dont want it to sleep, this should really just happen once when the server starts that way users can use the relay buttons
-        without being overidden by the schedule.
         """
         while True:
             try:
@@ -81,12 +85,15 @@ class RelayMonitor:
                     await self.set_relay_state(new_state)
             except Exception as e:
                 logger.error(f"Error managing schedule for relay {self.relay_id}: {e}")
-            await asyncio.sleep(60) # Check every minute
+            await asyncio.sleep(60)  # Check every minute
     
     async def set_relay_state(self, state: bool):
         self.state = state
-        logger.info(f"Relay {self.relay_id} state set to {state}")
-        # Implement logic for this here or in a separate function/file
+        logger.info(f"Relay {self.relay_id} state set to {'ON' if state else 'OFF'}")
+        if state:
+            await self.relay_manager.set_relay_on(self.relay_id)
+        else:
+            await self.relay_manager.set_relay_off(self.relay_id)
     
     async def collect_data_loop(self):
         """
@@ -97,6 +104,7 @@ class RelayMonitor:
                 data = await self.collect_data()
                 await self.stream_data(data)
                 await self.rules_engine.evaluate_rules(data)
+                logger.debug(f"Collected and evaluated data for relay {self.relay_id}: {data}")
             except Exception as e:
                 logger.error(f"Error collecting data for relay {self.relay_id}: {e}")
             await asyncio.sleep(self.collection_interval)
@@ -125,6 +133,6 @@ class RelayMonitor:
             return
         try:
             await self.redis.xadd(self.relay_id, data)
-            logger.debug(f"Data streamed for relay {self.relay_id}")
+            logger.debug(f"Data streamed for relay {self.relay_id}: {data}")
         except Exception as e:
             logger.error(f"Error streaming data for relay {self.relay_id}: {e}")
