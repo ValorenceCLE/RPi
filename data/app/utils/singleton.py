@@ -1,10 +1,10 @@
-from utils.config import settings
+import asyncio 
 from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync 
 from influxdb_client.client.write_api_async import WriteApiAsync 
 from influxdb_client.client.query_api_async import QueryApiAsync
 from redis.asyncio import Redis
-import asyncio 
 from utils.logging_setup import local_logger as logger
+from utils.config import settings
 
 class InfluxClient:
     _instance = None

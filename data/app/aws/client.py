@@ -1,9 +1,10 @@
 import asyncio
+import json
 from awsiot import mqtt5_client_builder
 from awscrt import mqtt5
 from utils.logging_setup import local_logger as logger
 from utils.config import settings
-import json
+
 
 class AWSIoTClient:
     _instance = None

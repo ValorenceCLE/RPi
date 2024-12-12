@@ -1,16 +1,17 @@
 # main.py
-
+import json
 import asyncio
 from utils.validator import validate_config, Schedule
 from utils.logging_setup import local_logger as logger
-from utils.certificates import CertificateManager
 from core.relay_monitor import RelayMonitor
 from core.processor import RelayProcessor, GeneralProcessor
 from core.cell import CellularData
 from core.net import NetworkData
 from core.env import EnvironmentalData
-from core.aws import start as aws_start, stop as aws_stop
 from core.relay_manager import RelayManager
+from aws.shadow import ShadowManager
+from aws.certificates import CertificateManager
+from aws.client import start as aws_start, stop as aws_stop
 
 async def setup_certificates():
     """
@@ -110,6 +111,11 @@ async def main():
     # Start the AWS IoT client
     logger.info("Starting AWS IoT client...")
     await aws_start()
+    shadow_manager = ShadowManager()
+    with open('/utils/json/shadow.json', 'r') as f:
+        initial_state = json.load(f)
+        print(initial_state)
+    await shadow_manager.update_shadow(initial_state)
 
     # Initialize tasks based on the validated configuration
     relay_tasks = await initialize_relay_tasks(config, relay_manager)
@@ -122,12 +128,21 @@ async def main():
     else:
         logger.info("All tasks initialized. Running indefinitely...")
         try:
-            results = await asyncio.gather(*all_tasks, return_exceptions=True)
-            for result in results:
-                if isinstance(result, Exception):
-                    logger.error(f"Task error occurred: {result}", exc_info=True)
+            await asyncio.gather(*all_tasks)
         except asyncio.CancelledError:
             logger.info("Tasks have been cancelled.")
+        except Exception as e:
+            logger.error(f"An error occurred in tasks: {e}", exc_info=True)
+
+    # Keep the application running to listen for shadow events
+    try:
+        while True:
+            await asyncio.sleep(1)
+    except KeyboardInterrupt:
+        logger.info("Shutting down...")
+    finally:
+        # Stop the AWSIoTClient
+        await aws_stop()
 
 if __name__ == "__main__":
     logger.info("Starting the relay controller...")

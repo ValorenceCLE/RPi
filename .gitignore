@@ -7,5 +7,5 @@ env/
 *.log
 certs/
 dist/
-aws/
+dev_testing/
 *.vscode/

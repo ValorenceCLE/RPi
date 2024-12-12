@@ -1,11 +1,10 @@
 import asyncio
-import json
 from datetime import datetime, timezone
 from influxdb_client import Point
 from utils.logging_setup import local_logger as logger
 from utils.config import settings
 from utils.singleton import InfluxWriter, RedisClient
-from core.aws import publish
+from aws.client import publish
 
 class BaseProcessor:
     def __init__(self):
@@ -29,7 +28,7 @@ class BaseProcessor:
         """Publish data to AWS IoT Core."""
         try:
             await publish(topic, data)
-            logger.info(f"Published to AWS: {topic} - {data}")
+            logger.debug(f"Published to AWS: {topic} - {data}")
         except Exception as e:
             logger.error(f"Failed to publish to AWS: {e}")
 

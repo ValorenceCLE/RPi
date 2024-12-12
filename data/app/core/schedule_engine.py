@@ -4,9 +4,6 @@
 # If it has a schedule it will calculate the time between now and when the relay should be ON or OFF
 # Use a timer to turn the relay ON/OFF. As opposed to constantly polling to see if the current time is the time specified in config
 
-
-
-
 import datetime
 from typing import Optional, Union
 from utils.validator import Schedule
