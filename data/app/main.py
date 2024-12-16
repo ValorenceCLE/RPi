@@ -1,4 +1,3 @@
-# main.py
 import json
 import asyncio
 from utils.validator import validate_config, Schedule
@@ -11,7 +10,8 @@ from core.env import EnvironmentalData
 from core.relay_manager import RelayManager
 from aws.shadow import ShadowManager
 from aws.certificates import CertificateManager
-from aws.client import start as aws_start, stop as aws_stop
+from aws.client import start as aws_start, stop as aws_stop, AWSIoTClient
+from aws.jobs import IoTJobManager
 
 async def setup_certificates():
     """
@@ -94,56 +94,88 @@ async def initialize_general_tasks():
 
     return tasks
 
+async def initialize_job_manager(mqtt_client):
+    """
+    Initialize the IoT Job Manager with existing MQTT connection.
+    """
+    try:
+        job_manager = IoTJobManager()
+        await job_manager.initialize(mqtt_client)
+        logger.info("IoT Job Manager initialized successfully")
+        return job_manager
+    except Exception as e:
+        logger.error(f"Failed to initialize IoT Job Manager: {e}")
+        raise
+
 async def main():
     """
     Main entry point for the application.
     """
-    logger.info("Application started.")
-    await setup_certificates()
-
-    logger.info("Validating configuration...")
-    config = validate_config()
-
-    # Create and initialize RelayManager once, passing config's relays
-    relay_manager = RelayManager(config.relays)
-    await relay_manager.init()
-
-    # Start the AWS IoT client
-    logger.info("Starting AWS IoT client...")
-    await aws_start()
-    shadow_manager = ShadowManager()
-    with open('/utils/json/shadow.json', 'r') as f:
-        initial_state = json.load(f)
-        print(initial_state)
-    await shadow_manager.update_shadow(initial_state)
-
-    # Initialize tasks based on the validated configuration
-    relay_tasks = await initialize_relay_tasks(config, relay_manager)
-    general_tasks = await initialize_general_tasks()
-
-    all_tasks = relay_tasks + general_tasks
-
-    if not all_tasks:
-        logger.warning("No tasks have been created. Check your configuration.")
-    else:
-        logger.info("All tasks initialized. Running indefinitely...")
-        try:
-            await asyncio.gather(*all_tasks)
-        except asyncio.CancelledError:
-            logger.info("Tasks have been cancelled.")
-        except Exception as e:
-            logger.error(f"An error occurred in tasks: {e}", exc_info=True)
-
-    # Keep the application running to listen for shadow events
+    tasks = []
+    job_manager = None
+    
     try:
-        while True:
-            await asyncio.sleep(1)
-    except KeyboardInterrupt:
-        logger.info("Shutting down...")
+        logger.info("Application started.")
+        await setup_certificates()
+
+        logger.info("Validating configuration...")
+        config = validate_config()
+
+        # Create and initialize RelayManager once
+        relay_manager = RelayManager(config.relays)
+        await relay_manager.init()
+
+        logger.info("Starting AWS IoT client...")
+        await aws_start()
+        mqtt_client = AWSIoTClient().get_mqtt_connection()
+        
+        # Initialize Shadow Manager
+        shadow_manager = ShadowManager(mqtt_client)
+        with open('/utils/json/shadow.json', 'r') as f:
+            initial_state = json.load(f)
+        await shadow_manager.update_shadow(initial_state)
+
+        # Initialize Job Manager with existing MQTT connection
+        logger.info("Initializing IoT Job Manager...")
+        job_manager = await initialize_job_manager(mqtt_client)
+        
+        # Initialize all tasks
+        relay_tasks = await initialize_relay_tasks(config, relay_manager)
+        general_tasks = await initialize_general_tasks()
+        
+        # Combine all tasks
+        tasks.extend(relay_tasks)
+        tasks.extend(general_tasks)
+
+        if not tasks:
+            logger.warning("No tasks have been created. Check your configuration.")
+        else:
+            logger.info("All tasks initialized. Running indefinitely...")
+            await asyncio.gather(*tasks)
+
+    except asyncio.CancelledError:
+        logger.info("Tasks have been cancelled.")
+    except Exception as e:
+        logger.error(f"An error occurred in main: {e}", exc_info=True)
     finally:
-        # Stop the AWSIoTClient
+        # Cleanup
+        if tasks:
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            # Wait for tasks to cancel
+            await asyncio.gather(*tasks, return_exceptions=True)
+        
+        if job_manager:
+            await job_manager.cleanup()
+        
         await aws_stop()
+        logger.info("Application shutdown complete.")
 
 if __name__ == "__main__":
-    logger.info("Starting the relay controller...")
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Application stopped by user.")
+    except Exception as e:
+        logger.error(f"Application crashed: {e}", exc_info=True)

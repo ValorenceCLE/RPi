@@ -39,6 +39,9 @@ class Settings:
         self.DEVICE_CSR = os.getenv('DEVICE_CSR')  # Generated CSR
         self.DEVICE_CRT = os.getenv('DEVICE_CRT')  # Generated CRT
         self.DEVICE_COMBINED_CRT = os.getenv('DEVICE_COMBINED_CRT')  # Generated combined CRT
+        self.AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+        self.AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECERET_ACCESS_KEY')
+
 
         # Certificate subject attributes
         self.COUNTRY_NAME = "US"
@@ -47,11 +50,16 @@ class Settings:
         self.ORGANIZATION_NAME = "Valorence"
         self.ORGANIZATIONAL_UNIT_NAME = "RPi"
 
-        # MQTT settings
-        self.DATA_TOPIC = f"{self.AWS_CLIENT_ID}/data"
-        self.COMMAND_TOPIC = f"{self.AWS_CLIENT_ID}/command"
-        self.ALERT_TOPIC = f"{self.AWS_CLIENT_ID}/alert"
-        self.ERROR_TOPIC = f"{self.AWS_CLIENT_ID}/error"
+        # AWS IoT MQTT topics
+        self.RELAY_TOPIC = f"{self.AWS_CLIENT_ID}/relay/data"
+        self.NET_TOPIC = f"{self.AWS_CLIENT_ID}/network/data"
+        self.CELL_TOPIC = f"{self.AWS_CLIENT_ID}/cellular/data"
+        self.ENV_TOPIC = f"{self.AWS_CLIENT_ID}/environmental/data"
+        self.ALERTS_TOPIC = f"{self.AWS_CLIENT_ID}/alerts/data"
+
+        # AWS IoT Management topics
+        self.GET_SHADOW_TOPIC = f"$aws/things/{self.AWS_CLIENT_ID}/shadow/get"
+        self.UPDATE_SHADOW_TOPIC = f"$aws/things/{self.AWS_CLIENT_ID}/shadow/update"
 
         # System settings
         self.SERIAL_NUMBER = self.rpi_serial()  # Uses the cached result

@@ -1,5 +1,6 @@
 from typing import Dict, Any
 from utils.logging_setup import local_logger as logger
+from utils.config import settings
 from core.relay_manager import RelayManager
 from aws.client import publish as aws_publish
 
@@ -176,5 +177,5 @@ class RulesEngine:
             "alert_type": alert_type,
             "data": data
         }
-        await self.publish("alerts/data", payload)
+        await self.publish(settings.ALERTS_TOPIC, payload)
         logger.info(f"Sent {alert_type.upper()} alert event to AWS for rule {rule_id} on relay {self.relay_id}.")

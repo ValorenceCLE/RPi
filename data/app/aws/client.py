@@ -1,5 +1,6 @@
 import asyncio
 import json
+from concurrent.futures import ThreadPoolExecutor
 from awsiot import mqtt5_client_builder
 from awscrt import mqtt5
 from utils.logging_setup import local_logger as logger
@@ -21,7 +22,11 @@ class AWSIoTClient:
         self.client = self._initialize_client()
         self.device_id = settings.AWS_CLIENT_ID
         self.TIMEOUT = 100
-    
+        self.executor = ThreadPoolExecutor()
+
+    def get_mqtt_connection(self):
+        return self.client
+
     def _initialize_client(self):
         logger.info("Initializing AWS IoT client...")
         return mqtt5_client_builder.mtls_from_path(
@@ -39,32 +44,41 @@ class AWSIoTClient:
         )
 
     async def start(self):
+        """Start the MQTT client asynchronously."""
+        await asyncio.get_event_loop().run_in_executor(self.executor, self._start_sync)
+
+    def _start_sync(self):
+        """Synchronous start method."""
         try:
             logger.info("Starting AWS IoT client...")
-            self.future_connection_success = asyncio.Future()
             self.client.start()
-            await asyncio.wait_for(self.future_connection_success, timeout=self.TIMEOUT)
-        except asyncio.TimeoutError:
-            logger.error("Timeout while starting AWS IoT client.")
-            raise
+            logger.info("AWS IoT client started successfully.")
         except Exception as e:
             logger.error(f"Error starting AWS IoT client: {e}")
             raise
-    
+
     async def stop(self):
+        """Stop the MQTT client asynchronously."""
+        await asyncio.get_event_loop().run_in_executor(self.executor, self._stop_sync)
+
+    def _stop_sync(self):
+        """Synchronous stop method."""
         try:
             logger.info("Stopping AWS IoT client...")
-            self.future_stopped = asyncio.Future()
             self.client.stop()
-            await asyncio.wait_for(self.future_stopped, timeout=self.TIMEOUT)
-        except asyncio.TimeoutError:
-            logger.error("Timeout while stopping AWS IoT client.")
-            raise
+            logger.info("AWS IoT client stopped successfully.")
         except Exception as e:
             logger.error(f"Error stopping AWS IoT client: {e}")
             raise
 
     async def publish(self, topic, payload, source=None):
+        """Publish a message asynchronously."""
+        await asyncio.get_event_loop().run_in_executor(
+            self.executor, self._publish_sync, topic, payload, source
+        )
+
+    def _publish_sync(self, topic, payload, source=None):
+        """Synchronous publish method."""
         if not isinstance(payload, dict):
             logger.error("Payload must be a dictionary.")
             return
@@ -74,19 +88,30 @@ class AWSIoTClient:
         json_payload = json.dumps(payload)
         prefixed_topic = f"{self.device_id}/{topic}"
         logger.debug(f"Publishing to topic '{prefixed_topic}' with payload: {json_payload}")
-        publish_future = self.client.publish(
-            mqtt5.PublishPacket(
-                topic=prefixed_topic,
-                payload=json_payload.encode("utf-8"),
-                qos=mqtt5.QoS.AT_LEAST_ONCE,
+        try:
+            self.client.publish(
+                mqtt5.PublishPacket(
+                    topic=prefixed_topic,
+                    payload=json_payload.encode("utf-8"),
+                    qos=mqtt5.QoS.AT_LEAST_ONCE,
+                )
             )
-        )
-        await self._wrap_future(publish_future)
+            logger.debug("Publish operation successful.")
+        except Exception as e:
+            logger.error(f"Error publishing to topic '{topic}': {e}")
+            raise
 
     async def subscribe(self, topic, callback=None):
+        """Subscribe to a topic asynchronously."""
+        await asyncio.get_event_loop().run_in_executor(
+            self.executor, self._subscribe_sync, topic, callback
+        )
+
+    def _subscribe_sync(self, topic, callback=None):
+        """Synchronous subscribe method."""
         try:
             logger.info(f"Subscribing to topic '{topic}'...")
-            subscribe_future = self.client.subscribe(
+            self.client.subscribe(
                 subscribe_packet=mqtt5.SubscribePacket(
                     subscriptions=[
                         mqtt5.Subscription(
@@ -96,28 +121,12 @@ class AWSIoTClient:
                     ]
                 )
             )
-            await self._wrap_future(subscribe_future)
             if callback:
                 self.client.on_publish_received = callback
+            logger.info(f"Subscribed to topic '{topic}' successfully.")
         except Exception as e:
             logger.error(f"Error subscribing to topic '{topic}': {e}")
             raise
-    
-    def _wrap_future(self, sdk_future):
-        """
-        Converts a concurrent.futures.Future into an asyncio.Future.
-        """
-        asyncio_future = asyncio.Future()
-
-        def callback(_sdk_future):
-            try:
-                result = _sdk_future.result()
-                asyncio_future.set_result(result)
-            except Exception as e:
-                asyncio_future.set_exception(e)
-
-        sdk_future.add_done_callback(callback)
-        return asyncio_future
 
     # Callbacks
     def on_publish_received(self, publish_packet_data):
@@ -128,13 +137,11 @@ class AWSIoTClient:
 
     def on_lifecycle_stopped(self, lifecycle_stopped_data: mqtt5.LifecycleStoppedData):
         logger.info("MQTT connection stopped")
-        self.future_stopped.set_result(lifecycle_stopped_data)
 
     def on_lifecycle_connection_success(
         self, lifecycle_connect_success_data: mqtt5.LifecycleConnectSuccessData
     ):
         logger.info("Lifecycle Connection Success")
-        self.future_connection_success.set_result(lifecycle_connect_success_data)
 
     def on_lifecycle_connection_failure(
         self, lifecycle_connection_failure: mqtt5.LifecycleConnectFailureData
@@ -145,6 +152,8 @@ class AWSIoTClient:
 
 # Plain Functions for Easy Usage
 _client_instance = None
+
+
 def _get_client_instance():
     global _client_instance
     if _client_instance is None:
