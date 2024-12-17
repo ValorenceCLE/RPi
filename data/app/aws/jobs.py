@@ -1,354 +1,300 @@
-import json
 import time
-import os
+import json
 import asyncio
-import boto3
-import aiohttp
+import subprocess
+from abc import ABC, abstractmethod
+from awscrt import mqtt5, io
 from awsiot import iotjobs
-from awscrt import mqtt5
-from awsiot.iotjobs import (
-    JobExecutionsChangedSubscriptionRequest,
-    StartNextPendingJobExecutionSubscriptionRequest,
-    UpdateJobExecutionSubscriptionRequest,
-    DescribeJobExecutionSubscriptionRequest,
-    DescribeJobExecutionRequest,
-    UpdateJobExecutionRequest,
-    JobStatus,
-)
-from utils.config import settings
 from utils.logging_setup import local_logger as logger
-from aws.client import _get_client_instance
+from utils.config import settings
+from aws.client import AWSIoTClient
+
+class JobHandler(ABC):
+    # Base class for Job Handlers
+    @abstractmethod
+    async def execute(self, job_id: str, job_document: dict, version_number: int)-> tuple[bool, dict]:
+        """
+        Execute the job
+        Returns: (success: bool, status_details: dict)
+        """
+        pass
+
+class RebootJobHandler(JobHandler):
+    # Handle device reboot commands from AWS IoT Jobs
+    async def execute(self, job_id:str, job_document:dict, version_number:int)-> tuple[bool, dict]:
+        message=job_document.get('message', 'Rebooting device...')
+        logger.info(f"Rebooting device: {message}")
+
+        status_details = {
+            'status': 'Reboot Initiated',
+            'message': message,
+            'completedAt': int(time.time())
+        }
+        # Schedule the reboot to happen after the job is marked as COMPLETED
+        asyncio.create_task(self._delayed_reboot())
+        return True, status_details
+    
+    async def _delayed_reboot(self):
+        # Reboot the device after a short delay to ensure the job is marked as COMPLETED
+        logger.info("Initiating system reboot...")
+        subprocess.run(['sudo', 'reboot'])
+
+"""
+Add more classed for job handlers here, follow the same pattern as RebootJobHandler
+"""
 
 
-class IoTJobManager:
-    def __init__(self):
-        self.mqtt_connection = None
-        self.jobs_client = None
+class JobManager:
+    def __init__(self, mqtt_client: AWSIoTClient):
+        self.mqtt_client = mqtt_client
+        self.mqtt_connection = mqtt_client.get_mqtt_connection()  # Get the underlying connection
         self.thing_name = settings.AWS_CLIENT_ID
-        self.session = boto3.Session(
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_REGION,
-        )
-        self.s3_client = self.session.client('s3')
-        self._job_semaphore = asyncio.Semaphore(5)
-        self.http_session = None
-
-    async def initialize(self, mqtt_connection=None):
-        """Initialize async components."""
-        self.http_session = aiohttp.ClientSession()
-        if mqtt_connection:
-            self.mqtt_connection = mqtt_connection
-            self.jobs_client = iotjobs.IotJobsClient(self.mqtt_connection)
-            await self.subscribe_to_job_notifications()
-        else:
-            await self.connect()
-
-    async def connect(self):
-        """Establishes a connection to AWS IoT Core using the MQTT5 client."""
-        try:
-            client_instance = _get_client_instance()
-            if not client_instance:
-                raise ValueError("AWS IoT Client instance not initialized")
-                
-            self.mqtt_connection = client_instance.get_mqtt_connection()
-            if not self.mqtt_connection:
-                raise ValueError("MQTT connection not available")
-                
-            self.jobs_client = iotjobs.IotJobsClient(self.mqtt_connection)
-            logger.info("Connected to AWS IoT Core for jobs.")
-        except Exception as e:
-            logger.error(f"Failed to connect to AWS IoT Core: {e}")
-            raise
-
-    async def cleanup(self):
-        """Cleanup async resources."""
-        if self.http_session:
-            await self.http_session.close()
-        # Don't stop the MQTT connection as it's shared
-        self.mqtt_connection = None
+        
+        # State Tracking
+        self._running = False
+        self._check_interval = 60
+        self.is_connected = False
         self.jobs_client = None
+        self.current_job = None
+        self.processing_job = False
+        self.loop = asyncio.get_event_loop()
 
-    async def connect(self):
-        """Establishes a connection to AWS IoT Core using the MQTT5 client."""
-        try:
-            self.mqtt_connection = _get_client_instance().get_mqtt_connection()
-            await self.mqtt_connection.start()
-            logger.info("Started MQTT5 connection to AWS IoT Core.")
+        # Register the job handlers, add more as needed
+        self.job_handlers = {
+            'reboot': RebootJobHandler()
+        }
+
+        # If connected, create the JobsClient immediately
+        if self.mqtt_connection:
             self.jobs_client = iotjobs.IotJobsClient(self.mqtt_connection)
-        except Exception as e:
-            logger.error(f"Failed to connect to AWS IoT Core: {e}")
-            raise
-
-    async def subscribe_to_job_notifications(self):
-        """Subscribes to job-related MQTT topics."""
+            self.is_connected = True
+    
+    async def connect(self):
+        # Establish the JobsClient connection
+        if self.mqtt_connection:
+            await self.setup_jobs()
+            return
+    
+    async def setup_jobs(self):
+        # Subscribe to the Job topics
+        logger.info("Subscribing to Job topics...")
         try:
-            # Subscribe to job executions changes
-            request = JobExecutionsChangedSubscriptionRequest(thing_name=self.thing_name)
+            notify_requests = iotjobs.JobExecutionsChangedSubscriptionRequest(
+                thing_name=self.thing_name
+            )
             self.jobs_client.subscribe_to_job_executions_changed_events(
-                request, qos=1, callback=self.on_job_executions_changed
+                request=notify_requests,
+                qos=mqtt5.QoS.AT_LEAST_ONCE,
+                callback=self.on_job_notification
             )
+            logger.info("Subscribed to Job topics successfully.")
 
-            # Subscribe to other job-related topics
-            await self._subscribe_to_job_topics()
-            
-            logger.info("Successfully subscribed to all job notifications")
         except Exception as e:
-            logger.error(f"Failed to subscribe to job notifications: {e}")
-            raise
-
-    async def _subscribe_to_job_topics(self):
-        """Helper method to subscribe to various job-related topics."""
+            logger.error(f"Failed to subscribe to Job topics: {e}")
+    
+    def on_job_notification(self, event):
+        # Handle job notifications
+        logger.info(f"Received Job Notification: {event}")
         try:
-            # Start next job subscriptions
-            start_request = StartNextPendingJobExecutionSubscriptionRequest(thing_name=self.thing_name)
-            self.jobs_client.subscribe_to_start_next_pending_job_execution_accepted(
-                start_request, qos=1, callback=self.on_start_next_job_accepted
-            )
-            self.jobs_client.subscribe_to_start_next_pending_job_execution_rejected(
-                start_request, qos=1, callback=self.on_start_next_job_rejected
-            )
-
-            # Update job subscriptions
-            update_request = UpdateJobExecutionSubscriptionRequest(
-                thing_name=self.thing_name, job_id="+"
-            )
-            self.jobs_client.subscribe_to_update_job_execution_accepted(
-                update_request, qos=1, callback=self.on_update_job_accepted
-            )
-            self.jobs_client.subscribe_to_update_job_execution_rejected(
-                update_request, qos=1, callback=self.on_update_job_rejected
-            )
-
-            # Describe job subscriptions
-            describe_request = DescribeJobExecutionSubscriptionRequest(
-                thing_name=self.thing_name, job_id="+"
-            )
-            self.jobs_client.subscribe_to_describe_job_execution_accepted(
-                describe_request, qos=1, callback=self.on_describe_job_accepted
-            )
-            self.jobs_client.subscribe_to_describe_job_execution_rejected(
-                describe_request, qos=1, callback=self.on_describe_job_rejected
-            )
-
+            if hasattr(event,'jobs'):
+                for status, job_list in event.jobs.items():
+                    for job in job_list:
+                        logger.info(f"Job ID: {job['jobId']}")
+                        logger.info(f"Status: {status}")
+                        logger.info(f"Details: {json.dumps(job)}")
         except Exception as e:
-            logger.error(f"Failed to subscribe to job topics: {e}")
-            raise
-        # Add callback methods
-    def on_job_executions_changed(self, event):
-        """Callback when job executions change."""
-        logger.info(f"✓ Received job notification: {event}")
-        
-        # Check if there are any pending jobs
-        if hasattr(event, 'jobs') and event.jobs:
-            logger.info(f"Number of jobs received: {len(event.jobs)}")
-            for job in event.jobs:
-                logger.info(f"Job ID: {job.job_id}, Status: {job.status}")
-        
-        # Start the next pending job execution
-        self.start_next_pending_job()
+            logger.error(f"Error processing Job Notification: {e}")
 
-    def on_start_next_job_accepted(self, response):
-        """Callback for accepted start next job."""
-        logger.info(f"Start next job accepted: {response}")
-
-    def on_start_next_job_rejected(self, error):
-        """Callback for rejected start next job."""
-        logger.error(f"Start next job rejected: {error}")
-
-    def on_update_job_accepted(self, response):
-        """Callback for accepted job update."""
-        logger.info(f"Job update accepted: {response}")
-
-    def on_update_job_rejected(self, error):
-        """Callback for rejected job update."""
-        logger.error(f"Job update rejected: {error}")
-
-    def on_describe_job_accepted(self, response):
-        """Callback for accepted job description."""
-        logger.info(f"Job description accepted: {response}")
-
-    def on_describe_job_rejected(self, error):
-        """Callback for rejected job description."""
-        logger.error(f"Job description rejected: {error}")
-
-    async def on_job_executions_changed(self, event):
-        """Async callback when job executions change."""
-        logger.info(f"Job executions changed: {event}")
-        asyncio.create_task(self.start_next_pending_job())
-
-    async def start_next_pending_job(self):
-        """Starts the next pending job execution."""
-        try:
-            request = {
-                "thingName": self.thing_name,
-                "clientToken": f"{self.thing_name}-{int(time.time())}"
-            }
-            self.jobs_client.publish_start_next_pending_job_execution(
-                request, qos=mqtt5.QoS.AT_LEAST_ONCE
-            )
-            logger.info("Published request to start next pending job")
-        except Exception as e:
-            logger.error(f"Failed to start next pending job: {e}")
-
-    async def process_job(self, job_document, job_id):
-        """Process a job asynchronously."""
-        async with self._job_semaphore:
+    async def start_next_job(self):
+        if not self.processing_job and self.current_job is None:
+            logger.debug("Checking for new Jobs...")
             try:
-                operation = job_document.get('operation')
-                if not operation:
-                    raise ValueError("Job document missing 'operation' field")
-
-                handlers = {
-                    'config_update': self.handle_config_update,
-                    'file_download': self.handle_file_download,
-                    'reboot': self.handle_reboot
-                }
-
-                handler = handlers.get(operation)
-                if not handler:
-                    raise ValueError(f"Unsupported operation: {operation}")
-
-                success = await handler(job_document)
-                
-                if success:
-                    await self.update_job_status(
-                        job_id, 
-                        JobStatus.SUCCEEDED,
-                        {"completion_time": time.strftime("%Y-%m-%d %H:%M:%S")}
-                    )
-                else:
-                    raise Exception(f"Operation {operation} failed")
-
-            except Exception as e:
-                logger.error(f"Job processing failed: {e}")
-                await self.update_job_status(
-                    job_id,
-                    JobStatus.FAILED,
-                    {"error": str(e), "failure_time": time.strftime("%Y-%m-%d %H:%M:%S")}
+                request = iotjobs.StartNextPendingJobExecutionRequest(
+                    thing_name=self.thing_name
                 )
-
-    async def update_job_status(self, job_id, status, status_details):
-        """Update job execution status asynchronously."""
+                self.jobs_client.publish_start_next_pending_job_execution(
+                    request=request,
+                    qos=mqtt5.QoS.AT_LEAST_ONCE
+                )
+            except Exception as e:
+                logger.error(f"Error starting next job: {e}")
+    
+    def on_publish_received(self, publish_packet_data):
+        # Handle received MQTT messages
         try:
-            request = UpdateJobExecutionRequest(
+            topuc = publish_packet_data.publish_packet.topic
+            if isinstance(topic, bytes):
+                topic = topic.decode('utf-8')
+            payload = publish_packet_data.publish_packet.payload
+            if isinstance(payload, bytes):
+                payload = payload.decode('utf-8')
+                try:
+                    payload_json = json.loads(payload)
+                    logger.info(f"Received message from topic '{topic}': {payload_json}")
+                    if 'start-next/accepted'in topic:
+                        if 'execution' in payload_json:
+                            if not self.processing_job:
+                                self.processing_job = True
+                                execution = payload_json['execution']
+                                asyncio.run_coroutine_threadsafe(
+                                    self.handle_job(
+                                        execution['jobId'],
+                                        execution['jobDocument'],
+                                        execution['versionNumber']
+                                    ),
+                                    self.loop
+                                )
+                        else:
+                            logger.debug("No pending jobs.")
+                except json.JSONDecodeError:
+                    logger.error(f"Received message on topic '{topic}': {payload}")
+        except Exception as e:
+            print(f"Error processing received message: {e}")
+
+    async def handle_job(self, job_id, job_document, version_number):
+        # Handle Job Execution
+        try:
+            logger.info(f"Handling Job: {job_id} (Version: {version_number})")
+
+            # Update job execution status
+            await self.update_job_execution(
+                job_id,
+                'IN_PROGRESS',
+                {'status': 'Starting job execution'},
+                version_number
+            )
+
+            # Get the appropriate job handler
+            operation = job_document.get('operation', '').lower()
+            handler = self.job_handlers.get(operation)
+
+            if handler:
+                # Execute the job
+                success, status_details = await handler.execute(job_id, job_document, version_number)
+                final_status = 'SUCCEEDED' if success else 'FAILED'
+                await self.update_job_execution(
+                    job_id,
+                    final_status,
+                    status_details,
+                    version_number + 1
+                )
+            else:
+                # Handle Unknown operation
+                await self.update_job_execution(
+                    job_id,
+                    'FAILED',
+                    {
+                        'status': 'Failed',
+                        'error': f'Unknown operation: {operation}'
+                    },
+                    version_number + 1
+                )
+        
+        except Exception as e:
+            logger.error(f"Error handling job: {e}")
+            await self.update_job_execution(
+                job_id,
+                'FAILED',
+                {
+                    'error': str(e),
+                    'status': 'Failed'
+                },
+                version_number + 1
+            )
+        finally:
+            self.current_job = None
+            self.processing_job = False
+            
+    async def update_job_execution(self, job_id, status, status_details, version_number):
+        # Update the Job Execution status
+        logger.info(f"Updating Job Execution: {job_id} to {status}")
+        try:
+            status_details['timestamp'] = int(time.time())
+            request = iotjobs.UpdateJobExecutionRequest(
                 thing_name=self.thing_name,
                 job_id=job_id,
                 status=status,
-                status_details=status_details
+                status_details=status_details,
+                expected_version=version_number,
+                execution_number=1,
+                include_job_execution_state=True
             )
-            await self.jobs_client.publish_update_job_execution(request)
-        except Exception as e:
-            logger.error(f"Failed to update job status: {e}")
-
-    # Add your handler methods here with async/await
-    async def handle_file_download(self, job_document):
-        """Async handler for file download operation."""
-        try:
-            if 'url' not in job_document:
-                raise ValueError("File download missing 'url' parameter")
-
-            url = job_document['url']
-            destination = job_document.get('destination', '/tmp')
-            filename = job_document.get('filename', 'downloaded_file')
-            
-            os.makedirs(destination, exist_ok=True)
-            full_path = os.path.join(destination, filename)
-
-            if 's3.amazonaws.com' in url:
-                # Parse S3 URL and download
-                parsed_url = url.replace('https://', '').split('/')
-                bucket = parsed_url[0].split('.')[0]
-                key = '/'.join(parsed_url[1:])
-                
-                # Use aioboto3 for async S3 operations if needed
-                await asyncio.to_thread(
-                    self.s3_client.download_file,
-                    bucket, key, full_path
-                )
-            else:
-                async with self.http_session.get(url) as response:
-                    response.raise_for_status()
-                    with open(full_path, 'wb') as f:
-                        while True:
-                            chunk = await response.content.read(8192)
-                            if not chunk:
-                                break
-                            f.write(chunk)
-
-            logger.info(f"✓ File downloaded successfully to {full_path}")
-            return True
-
-        except Exception as e:
-            logger.error(f"File download failed: {e}")
-            return False
-
-    async def handle_reboot(self, job_document):
-        """Async handler for reboot operation."""
-        try:
-            logger.info("Executing reboot operation...")
-            
-            # Get optional parameters
-            delay = job_document.get('delay', 0)  # Delay in seconds before reboot
-            force = job_document.get('force', False)  # Force reboot without checks
-            
-            if delay > 0:
-                logger.info(f"Waiting {delay} seconds before reboot...")
-                await asyncio.sleep(delay)
-            
-            # Perform pre-reboot checks if not forced
-            if not force:
-                # Check if any critical processes are running
-                if not await self._is_safe_to_reboot():
-                    raise ValueError("Unsafe to reboot - critical processes running")
-            
-            # Perform cleanup before reboot
-            await self._prepare_for_reboot()
-            
-            logger.info("Initiating system reboot...")
-            # Schedule the actual reboot command
-            asyncio.create_task(self._execute_command('sudo reboot'))
-            
-            logger.info("✓ Reboot command initiated")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Reboot operation failed: {e}")
-            return False
-
-    async def _is_safe_to_reboot(self):
-        """Check if it's safe to reboot the system."""
-        try:
-            # Add your safety checks here
-            # For example, check if any critical processes are running
-            await asyncio.sleep(1)  # Simulate checking
-            return True
-        except Exception as e:
-            logger.error(f"Reboot safety check failed: {e}")
-            return False
-
-    async def _prepare_for_reboot(self):
-        """Prepare system for reboot."""
-        try:
-            # Add cleanup tasks here
-            # For example: close connections, save state, etc.
-            await asyncio.sleep(1)  # Simulate preparation
-        except Exception as e:
-            logger.error(f"Reboot preparation failed: {e}")
-            raise
-
-    async def _execute_command(self, command):
-        """Execute a system command asynchronously."""
-        try:
-            process = await asyncio.create_subprocess_shell(
-                command,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
+            self.jobs_client.publish_update_job_execution(
+                request=request,
+                qos=mqtt5.QoS.AT_LEAST_ONCE
             )
-            stdout, stderr = await process.communicate()
-            if process.returncode != 0:
-                raise RuntimeError(f"Command failed: {stderr.decode()}")
-            return stdout.decode()
         except Exception as e:
-            logger.error(f"Command execution failed: {e}")
-            raise
+            logger.error(f"Error updating Job Execution: {e}")
+
+    def on_lifecycle_stopped(self, lifecycle_stopped_data):
+        logger.info("MQTT connection stopped")
+        self.is_connected = False
+        self.processing_job = False
+
+    def on_lifecycle_connection_success(self, lifecycle_connect_success_data):
+        self.is_connected = True
+
+    def on_lifecycle_connection_failure(self, lifecycle_connection_failure):
+        logger.warning(f"MQTT connection failed: {lifecycle_connection_failure.exception}")
+        self.is_connected = False
+        self.processing_job = False
+
+    async def start_job_processing(self):
+        """
+        Main entrypoint to start the job manager.
+        This will connect, setup jobs, and continuously monitor for new jobs.
+        """
+        if self._running:
+            logger.info("Job Manager already running.")
+            return
+        try:
+            self._running=True
+            logger.info("Starting Job Manager...")
+
+            # Ensure the JobsClient is connected
+            await self.connect()
+
+            # Setup initial jobs subscriptions
+            await self.setup_jobs()
+
+            # Start the main loop
+            while self._running:
+                try:
+                    await self.start_next_job()
+
+                    # Wait before checking for new jobs
+                    await asyncio.sleep(self._check_interval)
+                except Exception as e:
+                    logger.error(f"Error in Job Manager loop: {e}")
+                    # Wait before retrying
+                    await asyncio.sleep(5)
+        except Exception as e:
+            logger.error(f"Fatal Error Job Manager: {e}")
+            self._running = False
+    
+    async def stop_job_processing(self):
+        """
+        Gracefully stop the job manager.
+        """
+        logger.info("Stopping job manager...")
+        self._running = False
+        
+        # Wait for current job to complete if one is running
+        while self.processing_job:
+            logger.info("Waiting for current job to complete...")
+            await asyncio.sleep(1)
+
+        logger.info("Job manager stopped")
+
+    @property
+    def is_running(self):
+        """
+        Check if the job manager is currently running.
+        """
+        return self._running
+
+    def set_check_interval(self, seconds: int):
+        """
+        Set the interval between job checks.
+        """
+        self._check_interval = max(30, seconds)

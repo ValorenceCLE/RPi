@@ -177,5 +177,5 @@ class RulesEngine:
             "alert_type": alert_type,
             "data": data
         }
-        await self.publish(settings.ALERTS_TOPIC, payload)
+        await self.publish('alerts/data', payload)
         logger.info(f"Sent {alert_type.upper()} alert event to AWS for rule {rule_id} on relay {self.relay_id}.")

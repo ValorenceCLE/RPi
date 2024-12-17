@@ -1,181 +1,178 @@
-import json
 import asyncio
-from utils.validator import validate_config, Schedule
+import signal
+import json
+from typing import Optional
+from utils.validator import validate_config
 from utils.logging_setup import local_logger as logger
+from core.relay_manager import RelayManager
 from core.relay_monitor import RelayMonitor
-from core.processor import RelayProcessor, GeneralProcessor
+from core.processor import GeneralProcessor, RelayProcessor
 from core.cell import CellularData
 from core.net import NetworkData
 from core.env import EnvironmentalData
-from core.relay_manager import RelayManager
-from aws.shadow import ShadowManager
-from aws.certificates import CertificateManager
-from aws.client import start as aws_start, stop as aws_stop, AWSIoTClient
-from aws.jobs import IoTJobManager
+from aws.manager import AWSManager
 
-async def setup_certificates():
-    """
-    Check if device certificates exist; if not, generate them.
-    """
-    logger.info("Checking device certificates...")
-    cert_manager = CertificateManager()
-    if not cert_manager.certificate_exists():
-        logger.info("No device certificates found. Generating new certificates...")
+class ApplicationManager:
+    def __init__(self):
+        self.tasks = []
+        self.config = None
+        self.relay_manager = None
+        self.aws_manager = AWSManager()
+        self.shutdown_event: Optional[asyncio.Event] = None
+        self.shutdown_signal_received = False
+
+    def setup_signal_handlers(self):
+        self.shutdown_event = asyncio.Event()
+        
+        def handle_shutdown_signal(signum, frame):
+            signame = signal.Signals(signum).name
+            logger.info(f"Received shutdon signal {signame}")
+            if not self.shutdown_signal_received:
+                self.shutdown_signal_received = True
+                # Use call_soon_threadsafe since signals can come from different threads
+                asyncio.get_event_loop().call_soon_threadsafe(self.shutdown_event.set)
+        # SIGTERM is the signal sent by Docker to stop the container
+        signal.signal(signal.SIGTERM, handle_shutdown_signal)
+        # SIGINT is the signal sent by the user to stop the container
+        signal.signal(signal.SIGINT, handle_shutdown_signal)
+
+    async def initialize_relay_tasks(self):
+        """Initialize tasks for relay monitoring and processing."""
+        for relay_id, relay_config in self.config.relays.items():
+            should_monitor = relay_config.monitor
+            has_schedule = (hasattr(relay_config, 'schedule') and 
+                          relay_config.schedule and 
+                          relay_config.schedule.enabled)
+            if should_monitor or has_schedule:
+                monitor = RelayMonitor(relay_id, relay_config, relay_manager=self.relay_manager)
+                monitor_task = asyncio.create_task(monitor.start())
+                self.tasks.append(monitor_task)
+
+                processor=RelayProcessor(relay_id)
+                processor_task = asyncio.create_task(processor.run())
+                self.tasks.append(processor_task)
+                logger.info(f"Relay {relay_id}: monitoring and processing tasks created.")
+            else:
+                logger.info(f"No monitoring or scheduling configured for relay {relay_id}.")
+
+    async def initialize_general_tasks(self):
+        """Initialize tasks for general data collection and processing."""
+        collectors = [
+            ('network', NetworkData()),
+            ('cellular', CellularData()),
+            ('environmental', EnvironmentalData())
+        ]
+        for name, collector in collectors:
+            collector_task = asyncio.create_task(collector.run())
+            self.tasks.append(collector_task)
+
+        streams = [name for name, _ in collectors]
+        general_processor = GeneralProcessor(streams=streams)
+        processor_task = asyncio.create_task(general_processor.run())
+        self.tasks.append(processor_task)
+
+    async def setup(self):
+        """Initialize all application components"""
         try:
-            cert_manager.create_certificates()
-            logger.info("Certificates generated successfully.")
+            # Setup shutdown signal handlers
+            self.setup_signal_handlers()
+
+            # Validate Configuration
+            logger.info("Validating configuration...")
+            self.config = validate_config()
+
+            # Initialize Relay Manager
+            logger.info("Initializing Relay Manager...")
+            self.relay_manager = RelayManager(self.config.relays)
+            await self.relay_manager.init()
+
+            # Initialize AWS Manager and wait for connection
+            logger.info("Setting up AWS components...")
+            await self.aws_manager.setup()
+            
+            # Ensure AWS is connected before proceeding
+            if self.aws_manager.is_connected:
+                logger.info("AWS connection established")
+                # Initialize shadow state if available
+                if self.aws_manager.shadow_manager:
+                    logger.info("Reading shadow file...")
+                    with open('/utils/json/shadow.json', 'r') as f:
+                        initial_state = json.load(f)
+                    logger.info("Shadow file read successfully.")
+                    await self.aws_manager.shadow_manager.update_shadow(initial_state)
+            else:
+                logger.warning("AWS connection not established")
+
+            # Initialize application tasks
+            logger.info("Initializing tasks...")
+            await self.initialize_relay_tasks()
+            await self.initialize_general_tasks()
+
+            if not self.tasks:
+                logger.warning("No tasks have been initialized")
+            else:
+                logger.info(f"All tasks initialized: {len(self.tasks)} tasks created")
+                
         except Exception as e:
-            logger.error(f"Failed to generate certificates: {e}")
-    else:
-        logger.debug("Device certificates already exist.")
+            logger.error(f"Setup failed: {e}", exc_info=True)
+            raise  # Re-raise to ensure proper shutdown
+            
+    async def run(self):
+        """Main application run loop."""
+        try:
+            logger.info("Starting application...")
+            await self.setup()
+            
+            if self.tasks:
+                logger.info(f"Running {len(self.tasks)} tasks...")
+                # Wait for either tasks to complete or shutdown signal
+                await asyncio.gather(
+                    self.shutdown_event.wait(),
+                    *self.tasks,
+                    )
+            
+        except asyncio.CancelledError:
+            logger.info("Application shutdown initiated...")
+        except Exception as e:
+            logger.error(f"Application error: {e}", exc_info=True)
+        finally:
+            await self.shutdown()
 
-async def initialize_relay_tasks(config, relay_manager):
-    """
-    Initialize tasks for relay monitoring and processing based on the provided configuration.
-
-    Args:
-        config: The validated configuration object.
-        relay_manager (RelayManager): The initialized RelayManager instance.
-
-    Returns:
-        A list of asyncio tasks for relay monitoring and processing.
-    """
-    tasks = []
-    for relay_id, relay_config in config.relays.items():
-        should_monitor = relay_config.monitor
-        has_schedule = isinstance(relay_config.schedule, Schedule) and relay_config.schedule.enabled
-
-        if should_monitor or has_schedule:
-            monitor = RelayMonitor(relay_id, relay_config, relay_manager=relay_manager)
-            monitor_task = asyncio.create_task(monitor.start())
-            tasks.append(monitor_task)
-
-            processor = RelayProcessor(relay_id)
-            processor_task = asyncio.create_task(processor.run())
-            tasks.append(processor_task)
-            logger.debug(f"Relay {relay_id}: monitoring and processing tasks created.")
-        else:
-            logger.info(f"No monitoring or scheduling configured for relay {relay_id}.")
-    return tasks
-
-async def initialize_general_tasks():
-    """
-    Initialize tasks for general data collection and processing (cellular, network).
-
-    Returns:
-        A list of asyncio tasks for general metric collection and processing.
-    """
-    tasks = []
-
-    # Network Data Collection
-    net = NetworkData()
-    net_task = asyncio.create_task(net.run())
-    tasks.append(net_task)
-    logger.debug("Network data collection task created.")
-
-    # Cellular Data Collection
-    cell = CellularData()
-    cell_task = asyncio.create_task(cell.run())
-    tasks.append(cell_task)
-    logger.debug("Cellular data collection task created.")
-
-    # Environmental Data Collection
-    env = EnvironmentalData()
-    env_task = asyncio.create_task(env.run())
-    tasks.append(env_task)
-    logger.debug("Environmental data collection task created.")
-
-    # Streams for the GeneralProcessor
-    streams = ['network', 'cellular', 'environmental']
-    general_processor = GeneralProcessor(streams=streams)
-    general_processor_task = asyncio.create_task(general_processor.run())
-    tasks.append(general_processor_task)
-    logger.debug("General processor task created for streams: network, cellular, environmental.")
-
-    return tasks
-
-async def initialize_job_manager(mqtt_client):
-    """
-    Initialize the IoT Job Manager with existing MQTT connection.
-    """
-    try:
-        job_manager = IoTJobManager()
-        await job_manager.initialize(mqtt_client)
-        logger.info("IoT Job Manager initialized successfully")
-        return job_manager
-    except Exception as e:
-        logger.error(f"Failed to initialize IoT Job Manager: {e}")
-        raise
-
-async def main():
-    """
-    Main entry point for the application.
-    """
-    tasks = []
-    job_manager = None
-    
-    try:
-        logger.info("Application started.")
-        await setup_certificates()
-
-        logger.info("Validating configuration...")
-        config = validate_config()
-
-        # Create and initialize RelayManager once
-        relay_manager = RelayManager(config.relays)
-        await relay_manager.init()
-
-        logger.info("Starting AWS IoT client...")
-        await aws_start()
-        mqtt_client = AWSIoTClient().get_mqtt_connection()
+    async def shutdown(self):
+        """Clean shutdown of all components."""
+        logger.info("Initiating graceful shutdown...")
         
-        # Initialize Shadow Manager
-        shadow_manager = ShadowManager(mqtt_client)
-        with open('/utils/json/shadow.json', 'r') as f:
-            initial_state = json.load(f)
-        await shadow_manager.update_shadow(initial_state)
-
-        # Initialize Job Manager with existing MQTT connection
-        logger.info("Initializing IoT Job Manager...")
-        job_manager = await initialize_job_manager(mqtt_client)
-        
-        # Initialize all tasks
-        relay_tasks = await initialize_relay_tasks(config, relay_manager)
-        general_tasks = await initialize_general_tasks()
-        
-        # Combine all tasks
-        tasks.extend(relay_tasks)
-        tasks.extend(general_tasks)
-
-        if not tasks:
-            logger.warning("No tasks have been created. Check your configuration.")
-        else:
-            logger.info("All tasks initialized. Running indefinitely...")
-            await asyncio.gather(*tasks)
-
-    except asyncio.CancelledError:
-        logger.info("Tasks have been cancelled.")
-    except Exception as e:
-        logger.error(f"An error occurred in main: {e}", exc_info=True)
-    finally:
-        # Cleanup
-        if tasks:
-            for task in tasks:
+        try:
+            # Cancel all tasks
+            for task in self.tasks:
                 if not task.done():
                     task.cancel()
-            # Wait for tasks to cancel
-            await asyncio.gather(*tasks, return_exceptions=True)
-        
-        if job_manager:
-            await job_manager.cleanup()
-        
-        await aws_stop()
-        logger.info("Application shutdown complete.")
+            
+            if self.tasks:
+                # Wait for tasks to complete with timeout
+                try:
+                    async with asyncio.timeout(10):  # 10 second timeout
+                        await asyncio.gather(*self.tasks, return_exceptions=True)
+                except asyncio.TimeoutError:
+                    logger.warning("Some tasks did not complete within shutdown timeout")
+            
+            # Shutdown AWS components
+            if self.aws_manager:
+                await self.aws_manager.shutdown()
+            
+        except Exception as e:
+            logger.error(f"Error during shutdown: {e}", exc_info=True)
+        finally:
+            logger.info("Application shutdown complete.")
 
-if __name__ == "__main__":
+async def main():
+    app = ApplicationManager()
+    await app.run()
+
+if __name__=="__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("Application stopped by user.")
+        logger.info("Keyboard interrupt received.")
     except Exception as e:
-        logger.error(f"Application crashed: {e}", exc_info=True)
+        logger.error(f"Application error: {e}", exc_info=True)
