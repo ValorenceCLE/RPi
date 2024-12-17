@@ -46,7 +46,7 @@ echo "CPU load check:" >> $LOGFILE
 uptime >> $LOGFILE
 
 # Step 3: Shut down docker-compose services
-cd /home/admin/MyDockerProject
+cd /home/admin/RPi
 if [ -f "docker-compose.yml" ]; then
     docker-compose down
     if [ $? -eq 0 ]; then
