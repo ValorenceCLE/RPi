@@ -26,9 +26,4 @@ async def help_page(request: Request, user: dict = Depends(get_current_user)):
 # Testing 
 @router.get("/test")
 async def test(request: Request, user: dict = Depends(get_current_user)):
-    return {"message": "Hey Pal, Go Fuck Yourself!!!!"}
-
-
-@router.get("/testing")
-async def test(request: Request, user: dict = Depends(get_current_user)):
-    return {"message": "Hey Pal, Go Fuck Yourself! One More Time"}
+    return {"message": "Hey Pal, Go Fuck Yourself!!!! :)"}
