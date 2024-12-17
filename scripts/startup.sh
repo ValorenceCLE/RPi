@@ -55,6 +55,9 @@ update_repository() {
         log "INFO" "Setting HOME environment variable to $HOME"
     fi
 
+    # Ensure global safe directory configuration
+    sudo git config --global --add safe.directory "$ROOT_DIR"
+
     # Navigate to the repository directory
     if [ ! -d "$ROOT_DIR" ]; then
         log "ERROR" "Repository directory $ROOT_DIR does not exist."
@@ -62,12 +65,6 @@ update_repository() {
     fi
     cd "$ROOT_DIR" || { log "ERROR" "Failed to change directory to $ROOT_DIR."; exit 1; }
     log "INFO" "Changed to repository directory: $ROOT_DIR"
-
-    # Mark the directory as safe locally
-    if ! git config --local --get-all safe.directory | grep -q "$ROOT_DIR"; then
-        git config --local --add safe.directory "$ROOT_DIR"
-        log "INFO" "Marked $ROOT_DIR as a safe directory for Git."
-    fi
 
     # Initialize Git repository if it doesn't exist
     if [ ! -d ".git" ]; then

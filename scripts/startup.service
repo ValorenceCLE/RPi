@@ -4,6 +4,7 @@ After=gpio_setup.service  # Ensure this runs after GPIO setup
 Wants=gpio_setup.service  # Declare dependency on GPIO setup
 
 [Service]
+User=root
 ExecStart=/bin/bash /home/admin/RPi/scripts/startup.sh
 Restart=on-failure
 StandardOutput=append:/home/admin/startup.log
