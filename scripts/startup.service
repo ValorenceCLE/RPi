@@ -1,0 +1,13 @@
+[Unit]
+Description=Update and Docker Startup Service
+After=gpio_setup.service  # Ensure this runs after GPIO setup
+Wants=gpio_setup.service  # Declare dependency on GPIO setup
+
+[Service]
+ExecStart=/bin/bash /home/admin/RPi/scripts/startup.sh
+Restart=on-failure
+StandardOutput=append:/home/admin/startup.log
+StandardError=append:/home/admin/startup.log
+
+[Install]
+WantedBy=multi-user.target
