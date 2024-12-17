@@ -21,3 +21,9 @@ async def help_page(request: Request, user: dict = Depends(get_current_user)):
         return RedirectResponse(url="/login")
     user_role = user["role"]
     return templates.TemplateResponse("help.html", {"request": request, "username": user["username"], "role": user_role})
+
+
+# Testing 
+@router.get("/test")
+async def test(request: Request, user: dict = Depends(get_current_user)):
+    return {"message": "Hey Pal, Go Fuck Yourself!"}
