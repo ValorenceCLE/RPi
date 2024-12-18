@@ -28,7 +28,7 @@ class RelayManager:
                 "current_state": cfg.boot_power  # Initialize with boot_power state
             }
         self.initialized = False
-        logger.info("RelayManager created.")
+        logger.debug("RelayManager created.")
 
     async def init(self):
         """
@@ -43,7 +43,7 @@ class RelayManager:
             await asyncio.to_thread(GPIO.setup, pin, GPIO.OUT)
             desired_state = info["current_state"]  # Use current_state as initial state
             await self._set_pin_state(pin, desired_state)
-            logger.info(f"Relay {relay_id} initialized to {'ON' if desired_state else 'OFF'} at boot.")
+            logger.debug(f"Relay {relay_id} initialized to {'ON' if desired_state else 'OFF'} at boot.")
 
         self.initialized = True
 

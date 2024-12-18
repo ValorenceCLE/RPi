@@ -26,7 +26,7 @@ class AWSManager:
             self.aws_client = AWSIoTClient()
             await self.aws_client.start()
             # Brief wait to ensure connection
-            await asyncio.sleep(2)
+            await asyncio.sleep(1)
             if self.aws_client.is_connected:
                 logger.info("AWS IoT client connected")
                 self.is_connected = True
@@ -34,8 +34,8 @@ class AWSManager:
             else:
                 logger.warning("AWS IoT client not connected")
         except Exception as e:
-            logger.warning(f"AWS setup failed: {e}")
-            logger.info("Continuing without AWS connectivity...")
+            logger.error(f"AWS setup failed: {e}")
+            logger.warning("Continuing without AWS connectivity...")
             self.is_connected = False
 
     async def _setup_managers(self):
@@ -45,7 +45,7 @@ class AWSManager:
             self.shadow_manager = ShadowManager(self.aws_client)
             
             # Setup Job Manager
-            logger.info("Starting job processing in its own task...")
+            logger.debug("Starting job processing in its own task...")
             self.job_manager = JobManager(self.aws_client)
             asyncio.create_task(self.job_manager.start_job_processing())
             

@@ -1,13 +1,9 @@
-# utils/validator.py
-
 import json
 import os
 from typing import Dict, Any, List, Optional, Union
 from pydantic import BaseModel, ValidationError, field_validator
-import logging
 from datetime import datetime
-
-logger = logging.getLogger('validator')
+from utils.logging_setup import local_logger as logger
 
 # Define the global variable to store the validation config
 VALIDATION_CONFIG = None

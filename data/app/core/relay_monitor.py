@@ -67,7 +67,7 @@ class RelayMonitor:
     async def init_redis(self):
         try:
             self.redis = await RedisClient.get_instance()
-            logger.info("Redis client initialized")
+            logger.debug("Redis client initialized")
         except Exception as e:
             logger.error(f"Failed to initialize Redis client: {e}")
 

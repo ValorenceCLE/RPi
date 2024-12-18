@@ -77,7 +77,7 @@ class JobManager:
     
     async def setup_jobs(self):
         # Subscribe to the Job topics
-        logger.info("Subscribing to Job topics...")
+        logger.debug("Subscribing to Job topics...")
         try:
             notify_requests = iotjobs.JobExecutionsChangedSubscriptionRequest(
                 thing_name=self.thing_name
@@ -87,7 +87,7 @@ class JobManager:
                 qos=mqtt5.QoS.AT_LEAST_ONCE,
                 callback=self.on_job_notification
             )
-            logger.info("Subscribed to Job topics successfully.")
+            logger.debug("Subscribed to Job topics successfully.")
 
         except Exception as e:
             logger.error(f"Failed to subscribe to Job topics: {e}")

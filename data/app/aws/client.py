@@ -27,7 +27,6 @@ class AWSIoTClient:
 
     def _initialize_client(self):
         try:
-            logger.info("Initializing AWS IoT client...")
             self.client = mqtt5_client_builder.mtls_from_path(
                 endpoint=settings.AWS_ENDPOINT,
                 port=8883,
@@ -62,10 +61,10 @@ class AWSIoTClient:
 
     def _start_sync(self):
         try:
-            logger.info("Starting AWS IoT client...")
+            logger.debug("Starting AWS IoT client...")
             self.client.start()
             # Connection success will be set by the lifecycle callback
-            logger.info("AWS IoT client start initiated.")
+            logger.debug("AWS IoT client start initiated.")
         except Exception as e:
             logger.error(f"Error starting AWS IoT client: {e}")
             self.is_connected = False
@@ -156,7 +155,7 @@ class AWSIoTClient:
             )
             if callback:
                 self.client.on_publish_received = callback
-            logger.info(f"Subscribed to topic '{topic}' successfully.")
+            logger.debug(f"Subscribed to topic '{topic}' successfully.")
         except Exception as e:
             logger.debug(f"Error in subscribe_sync: {e}")
 
@@ -171,14 +170,14 @@ class AWSIoTClient:
 
     def on_lifecycle_stopped(self, lifecycle_stopped_data):
         try:
-            logger.info("MQTT connection stopped")
+            logger.debug("MQTT connection stopped")
             self.is_connected = False
         except Exception as e:
             logger.debug(f"Error in lifecycle stopped callback: {e}")
 
     def on_lifecycle_connection_success(self, lifecycle_connect_success_data):
         try:
-            logger.info("MQTT connection successful")
+            logger.debug("MQTT connection successful")
             self.is_connected = True
         except Exception as e:
             logger.debug(f"Error in connection success callback: {e}")

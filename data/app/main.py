@@ -51,9 +51,9 @@ class ApplicationManager:
                 processor=RelayProcessor(relay_id)
                 processor_task = asyncio.create_task(processor.run())
                 self.tasks.append(processor_task)
-                logger.info(f"Relay {relay_id}: monitoring and processing tasks created.")
+                logger.debug(f"Relay {relay_id}: monitoring and processing tasks created.")
             else:
-                logger.info(f"No monitoring or scheduling configured for relay {relay_id}.")
+                logger.debug(f"No monitoring or scheduling configured for relay {relay_id}.")
 
     async def initialize_general_tasks(self):
         """Initialize tasks for general data collection and processing."""

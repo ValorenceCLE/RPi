@@ -107,7 +107,7 @@ class RulesEngine:
             rule (Rule): The rule configuration.
             data (Dict[str, float]): Current sensor data.
         """
-        logger.info(f"Alert START for rule {rule_id} on relay {self.relay_id}. Condition met.")
+        logger.debug(f"Alert START for rule {rule_id} on relay {self.relay_id}. Condition met.")
         for action in rule.actions:
             await self._execute_action(action, data, alert_state='start')
         await self._send_aws_alert(rule_id, data, alert_type='start')
@@ -122,7 +122,7 @@ class RulesEngine:
             rule (Rule): The rule configuration.
             data (Dict[str, float]): Current sensor data.
         """
-        logger.info(f"Alert CLEAR for rule {rule_id} on relay {self.relay_id}. Condition not met.")
+        logger.debug(f"Alert CLEAR for rule {rule_id} on relay {self.relay_id}. Condition not met.")
         # If you want symmetrical actions on clear, you can iterate and execute them here.
         # Currently, only AWS alert_clear is sent.
         await self._send_aws_alert(rule_id, data, alert_type='clear')
@@ -158,7 +158,7 @@ class RulesEngine:
                 "data": data
             }
             await self.publish("alerts/data", payload)
-            logger.info(f"Published AWS alert: {payload}")
+            logger.debug(f"Published AWS alert: {payload}")
         else:
             logger.error(f"Unknown action type: {action_type}")
 
@@ -178,4 +178,4 @@ class RulesEngine:
             "data": data
         }
         await self.publish('alerts/data', payload)
-        logger.info(f"Sent {alert_type.upper()} alert event to AWS for rule {rule_id} on relay {self.relay_id}.")
+        logger.debug(f"Sent {alert_type.upper()} alert event to AWS for rule {rule_id} on relay {self.relay_id}.")

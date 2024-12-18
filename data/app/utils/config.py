@@ -1,23 +1,53 @@
 import os
+import asyncio
+import aiofiles
 from functools import lru_cache
 from utils.logging_setup import local_logger as logger
 
 class Settings:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(Settings, cls).__new__(cls)
+        return cls._instance
+
+
     @lru_cache(maxsize=1)
-    def rpi_serial(self):
+    async def rpi_serial(self):
         """
         Get the Raspberry Pi serial number from /proc/cpuinfo.
         """
-        try:
-            with open('/proc/cpuinfo', 'r') as f:
-                for line in f:
+        try: 
+            async with aiofiles.open('/proc/cpuinfo', 'r') as f:
+                async for line in f:
                     if line.startswith('Serial'):
-                        return line.split(':')[-1].strip().lower()
+                        serial = line.split(':')[-1].strip().lower()
+                        return serial
+            logger.error("Failed to read serial number from /proc/cpuinfo.")
+            return None
         except IOError as e:
-            logger.error(f"Failed to get RPi Serial Number: {e}")
+            logger.error(f"Error reading serial number: {e}")
             return None
 
-    def __init__(self):        
+    def __init__(self):
+        if hasattr(self, '_initialized') and self._initialized:
+            return
+        self._initialized = True
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                task = loop.create_task(self.rpi_serial())
+                self.serial_number = None
+                task.add_done_callback(lambda t: setattr(self, 'serial_number', t.result()))
+            else:
+                self.serial_number=asyncio.run(self.rpi_serial())
+        except RuntimeError as e:
+            logger.error(f"Error initializing serial number: {e}")
+            self.serial_number = None
+
+
+
         # Database settings
         self.TOKEN = os.getenv('DOCKER_INFLUXDB_INIT_ADMIN_TOKEN')
         self.ORG = os.getenv('DOCKER_INFLUXDB_INIT_ORG')
@@ -28,7 +58,7 @@ class Settings:
         self.REDIS_URL = os.getenv('REDIS_URL')
 
         # AWS settings
-        self.AWS_CLIENT_ID = self.rpi_serial()  # Uses the cached result
+        self.AWS_CLIENT_ID = self.serial_number  # Uses the cached result
         self.AWS_REGION = os.getenv('AWS_REGION')  # AWS Region (us-east-1)
         self.AWS_ENDPOINT = os.getenv('AWS_ENDPOINT')  # AWS IoT endpoint
         self.CERT_DIR = os.getenv('CERT_DIR')  # Directory to store certs
@@ -40,7 +70,7 @@ class Settings:
         self.DEVICE_CRT = os.getenv('DEVICE_CRT')  # Generated CRT
         self.DEVICE_COMBINED_CRT = os.getenv('DEVICE_COMBINED_CRT')  # Generated combined CRT
         self.AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-        self.AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECERET_ACCESS_KEY')
+        self.AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 
 
         # Certificate subject attributes
@@ -62,7 +92,7 @@ class Settings:
         self.UPDATE_SHADOW_TOPIC = f"$aws/things/{self.AWS_CLIENT_ID}/shadow/update"
 
         # System settings
-        self.SERIAL_NUMBER = self.rpi_serial()  # Uses the cached result
+        self.SERIAL_NUMBER = self.serial_number # Uses the cached result
 
         # SNMP settings
         self.COMMUNITY = 'public'
