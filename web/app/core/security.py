@@ -1,3 +1,9 @@
+
+#! -----REFACTORING NOTES-----
+#? This will need a lot of changes to work with the new authentication system and Vue
+#? Higher priority to get this right so that settings are sent securely
+#? Setup logic to API token generation and storage
+
 import json
 import os
 from typing import Dict

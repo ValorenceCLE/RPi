@@ -1,3 +1,7 @@
+
+#! -----REFACTORING NOTES-----
+#? This file is good but will need adjusting to work with the new authentication system and Vue
+
 from fastapi import APIRouter, Request, Form, Depends, status, HTTPException
 from fastapi.responses import RedirectResponse, HTMLResponse
 from core.security import authenticate_user, create_access_token

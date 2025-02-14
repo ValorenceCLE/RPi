@@ -1,3 +1,8 @@
+
+#! -----REFACTORING NOTES-----
+#! ----- This file will need major changes
+#? We need to make sure we make VERY robust and thorough classes and methods to interact with the relays that are highly reusable
+
 from fastapi import APIRouter, HTTPException #type: ignore
 import RPi.GPIO as GPIO
 import asyncio

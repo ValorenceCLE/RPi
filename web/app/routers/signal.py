@@ -1,3 +1,8 @@
+
+
+#! -----REFACTORING NOTES-----
+#? This file seems good enough but may need some minor improvements
+
 from fastapi import APIRouter #type: ignore
 from redis.asyncio import Redis #type: ignore
 from core.config import settings

@@ -1,3 +1,7 @@
+
+#! -----REFACTORING NOTES-----
+#? This file will likely need a lot of changes
+
 from fastapi import APIRouter, Depends, Request # type: ignore
 from fastapi.responses import HTMLResponse, RedirectResponse # type: ignore
 from core.security import get_current_user

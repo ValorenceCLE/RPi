@@ -1,3 +1,8 @@
+
+#! -----REFACTORING NOTES-----
+#? We can keep this file and just improve it to have better security
+#? Low priority
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response

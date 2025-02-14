@@ -121,11 +121,11 @@ class RelayProcessor(BaseProcessor):
                 .field("amps", data['amps'])\
                 .time(datetime.fromisoformat(data['timestamp']))
             
-            # Write to InfluxDB
-            await self.write_to_influxdb(point)
-
-            # Publish to AWS IoT
-            await self.publish_to_aws("relay/data", data)
+        # Concurrently write to InfluxDB and publish to AWS
+            await asyncio.gather(
+                self.write_to_influxdb(point),
+                self.publish_to_aws("relay/data", data)
+            )
 
     async def run(self):
         """Main loop for the Relay Processor."""

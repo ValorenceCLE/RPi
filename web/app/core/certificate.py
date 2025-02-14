@@ -1,3 +1,9 @@
+
+#! -----REFACTORING NOTES-----
+#? We may not need this file or we can change it so it uses the AWS certs
+#* We need to check if the cert is valid before generating a new one
+
+
 import os
 import datetime
 import shutil

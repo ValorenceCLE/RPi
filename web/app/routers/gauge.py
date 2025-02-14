@@ -1,3 +1,9 @@
+
+#! -----REFACTORING NOTES-----
+#! This file will need major changes to work with the new Vue frontend
+#! Maybe just delete it and make a more generic WS handler
+
+
 import asyncio
 import json
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect #type: ignore

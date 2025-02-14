@@ -1,3 +1,7 @@
+
+#! -----REFACTORING NOTES-----
+#! ----- Remove all template code -----
+
 from fastapi import APIRouter, Depends, status, Request # type: ignore
 from fastapi.responses import HTMLResponse, RedirectResponse # type: ignore
 from fastapi.templating import Jinja2Templates # type: ignore

@@ -1,3 +1,10 @@
+
+#! -----REFACTORING NOTES-----
+#? This will need to be cleaned up a lot.
+#? We also may way to move to a more SQLite heavy approach instead of JSON
+#! Minimize and consolidate imports, amd .env variables
+#TODO: Add type hints/Config validation
+
 import os
 import secrets
 

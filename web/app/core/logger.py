@@ -1,3 +1,8 @@
+
+#! -----REFACTORING NOTES-----
+#! ----- DELETE THIS FILE -----
+#? We should make one standardized logger file
+
 import asyncio 
 
 class LoggerWrapper:

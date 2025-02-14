@@ -1,3 +1,7 @@
+
+#! -----REFACTORING NOTES-----
+#? This file is mostly good, minor changes to work with Vue
+
 from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync
 from influxdb_client.client.query_api_async import QueryApiAsync
 from fastapi import APIRouter, HTTPException

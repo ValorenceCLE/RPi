@@ -1,3 +1,8 @@
+
+#! -----REFACTORING NOTES-----
+#! -----DELETE THIS FILE-----
+#? This file is not needed anymore
+
 import aiosnmp
 import aiofiles
 from fastapi import FastAPI, APIRouter, Request
