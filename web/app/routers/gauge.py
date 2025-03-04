@@ -37,7 +37,7 @@ async def get_live_data(stream: str):
 async def websocket_endpoint(websocket: WebSocket, page_name: str):
     await websocket.accept()
     if page_name == "" or page_name == "/": # If the user is on the homepage, handle it accordingly
-        stream_name = ["system_data", "environment_data", "network_data"]
+        stream_name = ["system_data", "environmental", "network"]
     else:
         stream_name = STREAM_MAP.get(page_name)
     if not stream_name:
@@ -53,10 +53,10 @@ async def websocket_endpoint(websocket: WebSocket, page_name: str):
                     stream_data = await get_live_data(stream)
                     if stream == "system_data":
                         data["volts"] = stream_data.get("volts", "N/A")
-                    elif stream == "environment_data":
+                    elif stream == "environmental":
                         data["temperature"] = stream_data.get("temperature", "N/A")
-                    elif stream == "network_data":
-                        data["latency"] = stream_data.get("avg_rtt", "N/A")
+                    elif stream == "network":
+                        data["avg_rtt"] = stream_data.get("avg_rtt", "N/A")
 
                 if data:
                     await websocket.send_text(json.dumps(data))

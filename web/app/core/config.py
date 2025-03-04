@@ -38,7 +38,7 @@ class Settings:
     
     # Etc settings
     GPIO_PINS = {"router": 21, "camera": 20, "strobe": 16, "fan": 12}
-    STREAM_MAP = {"system": "system_data", "router": "router_data", "camera": "camera_data", "network": "cellular_data",}
+    STREAM_MAP = {"system": "relay_3", "router": "relay_1", "camera": "relay_2", "network": "cellular",}
     GAUGE_SETTINGS = {
     "system": {"volts": {"min": 0, "max": 20, "suffix": "V"}, "watts": {"min": 0, "max": 24, "suffix": "W"}, "amps": {"min": 0, "max": 2, "suffix": "A"}},
     "router": {"volts": {"min": 0, "max": 20, "suffix": "V"}, "watts": {"min": 0, "max": 24, "suffix": "W"}, "amps": {"min": 0, "max": 2, "suffix": "A"}},
